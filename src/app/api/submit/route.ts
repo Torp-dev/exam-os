@@ -20,13 +20,19 @@ export async function POST(req: Request) {
       `*[_type == "exam" && slug.current == $slug][0]._id`,
       { slug: body.examId }
     );
+    const answers = Array.isArray(body.answers) ? body.answers : [];
     const doc = await writeClient.create({
       _type: "submission",
       ...(examId ? { exam: { _type: "reference", _ref: examId } } : {}),
       studentName: body.studentName ?? "Student",
       rollNo: body.rollNo ?? "—",
       college: body.college ?? "—",
-      answers: body.answers,
+      // Studio arrays need `_key` per item or the doc can't be edited.
+      answers: answers.map((a: { questionNo?: number; answer?: string }, i: number) => ({
+        _key: `q${a?.questionNo ?? i}`,
+        questionNo: a?.questionNo ?? i,
+        answer: a?.answer ?? "",
+      })),
       submittedAt: new Date().toISOString(),
       status: "submitted",
     });
