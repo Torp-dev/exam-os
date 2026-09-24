@@ -33,11 +33,8 @@ export default async function Home() {
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-display max-w-2xl text-4xl font-extrabold tracking-tight md:text-5xl">
-              Papers on the board
+              Exam Status
             </h2>
-            <p className="mt-3 max-w-xl text-zinc-600">
-              Every paper below is driven by Sanity. Teachers publish once, all colleges see it together.
-            </p>
           </div>
           <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-zinc-500">
             {process.env.NEXT_PUBLIC_SANITY_PROJECT_ID &&
