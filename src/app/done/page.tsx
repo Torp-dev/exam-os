@@ -116,7 +116,7 @@ function DoneInner() {
               </div>
               <div className="rounded-2xl bg-paper p-3">
                 <p className="font-display text-lg font-extrabold">
-                  {delayed ? "Delayed" : resultAt ? new Date(resultAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Later"}
+                  {delayed ? "Delayed" : resultAt ? new Date(resultAt).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Later"}
                 </p>
                 <p className="text-xs text-zinc-500">Results publish at</p>
               </div>

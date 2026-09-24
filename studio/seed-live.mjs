@@ -5,14 +5,14 @@ const client = getCliClient({ apiVersion: "2025-09-01" });
 // Always-live judge demo: wide window so the paper is joinable on any visit.
 const exam = await client.create({
   _type: "exam",
-  title: "Subject - General Knowledge | Semester - 1 (Judge Demo — always live)",
+  title: "Subject - General Knowledge | Semester - 1 (Current Affairs)",
   slug: { _type: "slug", current: "judge-demo-gk" },
   subject: "General Knowledge",
   classSem: "Semester - 1",
   colleges: ["Fergusson College", "MIT Pune", "St. Xavier's"],
   releaseAt: new Date(Date.now() - 24 * 3600_000).toISOString(),
   closeAt: "2030-01-01T00:00:00.000Z",
-  resultAt: "2030-02-01T00:00:00.000Z",
+  resultAt: new Date(Date.now() + 30 * 24 * 3600_000).toISOString(),
   durationMins: 20,
   totalMarks: 30,
   status: "live",
