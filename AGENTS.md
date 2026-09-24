@@ -19,9 +19,9 @@ Exam hosting site for colleges/universities.
 - Not just photo posting. Structured data lets code reason: countdown from `releaseAt`, timer from `durationMins`, filters by `colleges[]`, result gate from `resultAt`, notice window from `showFrom`/`showUntil`.
 - Teacher flow: hosted Studio -> Publish/Release -> Next.js (`next-sanity` fetch) reads live, no redeploy.
 
-## 3. Schemas (planned)
+## 3. Schemas (live in `production`)
 - `exam`: title, slug, subject, class/sem, colleges[string[]], releaseAt[datetime], closeAt[datetime], resultAt[datetime — results publish at, students see marks only after], durationMins[number], totalMarks[number], status[draft|approved|scheduled|live|closed], instructions[text]
-- `question`: exam[reference->exam], number[number], type[mcq|short|long], questionText[text], options[string[]] (mcq only), correctAnswer[string], marks[number]
+- `question`: exam[reference->exam], number[number], type[mcq|short|long], questionText[text], options[string[]] (mcq only), correctAnswer[string — edited via custom `AnswerPicker` input, not typed], marks[number]
 - `submission`: exam[reference->exam], studentName[string], rollNo[string], college[string], answers[{questionNo, answer}][array], submittedAt[datetime], marksAwarded[number — teacher fills in Studio], status[submitted|checking|checked|returned], feedback[text]. NO autoScore — review happens in Sanity, never on the student screen.
 - `announcement`: title, message, showFrom[datetime — scheduled visible-from], showUntil[datetime], attachment[file PDF → download link]
 - Review model (user decision Sep 24): student submits → answers land in Sanity as `submitted` → teacher checks in Studio (`checking` → `checked`, fills `marksAwarded` + `feedback`) → `returned` at `resultAt`. `/done` shows confirmation only (attempted count + publish date), never scores or correct answers.
@@ -29,6 +29,8 @@ Exam hosting site for colleges/universities.
 Key GROQ:
 - List exams: `*[_type=="exam"]|order(releaseAt desc)`
 - Paper sync: `*[_type=="question" && exam._ref==$examId]|order(number asc)`
+- Notices (window): `*[_type=="announcement" && (!defined(showFrom) || showFrom <= now()) && (!defined(showUntil) || showUntil > now())]|order(_createdAt desc)`
+- Result lookup: `*[_type=="submission" && exam->slug.current==$examId && lower(studentName)==lower($name) && rollNo==$roll && status=="returned"]|order(_createdAt desc)[0]{...,"totalMarks":exam->totalMarks,"returnedAt":coalesce(_updatedAt,submittedAt)}`
 
 ## 4. Must-have checklist
 ### A. Sanity backend (judges open this)
@@ -38,10 +40,10 @@ Key GROQ:
 - [x] Decision Sep 24: NO embedded `/studio` route in this site (removed) — teachers author in hosted Studio at sanity.io/manage
 - [x] Sanity account + project created — DONE Sep 24: project `exam-os`, ID `vju5fidf`, dataset `production` (user via sanity.io; CLI authed as Google user)
 - [x] projectId plugged into `.env.local` (+ `.env.local.example` committed)
-- [x] Standalone `studio/` (sanity 6.16.0, shared schemas) runs at localhost:3333 — [ ] `sanity deploy` for hosted Studio URL still pending
+- [x] Standalone `studio/` (sanity 6.16.0, shared schemas) runs at localhost:3333 — [x] deployed Sep 24 to https://exam-os-studio.sanity.studio/ (hostname `exam-os-studio`, appId pinned in `studio/sanity.cli.ts`)
 - [x] Dataset `production` readable + seeded: 4 exams (1 always-live judge demo + 3 upcoming) + 34 questions + 2 notices (1 with PDF, 1 scheduled) via `studio/seed*.mjs`
 - [x] CORS for Vercel URL + localhost:3000 (via CLI)
-- [x] SANITY_WRITE_TOKEN (Editor) in local `.env.local`, write path proven `{stored:"sanity"}` — [ ] same vars on Vercel (dashboard) + redeploy still pending
+- [x] SANITY_WRITE_TOKEN (Editor) in local `.env.local`, write path proven `{stored:"sanity"}` — [x] same 4 vars set in Vercel dashboard (3 `NEXT_PUBLIC_*` + Secret token) + redeployed; site verified serving live Sanity data Sep 24
 - [ ] Studio screenshots for DEV post
 
 ### B. Next.js app (student side) — BUILT + user-tested Sep 24 (live Sanity data)
@@ -49,7 +51,7 @@ Key GROQ:
 - [x] `/exam/[id]` countdown + starts-at clock; name + 4-digit roll with college auto-detect (all digits mapped)
 - [x] Take page: questions in order, MCQ radio + textarea, exact `durationMins` timer, no floating nav, Time's UP card → OK submits
 - [x] Submit writes Sanity `submission` (proven); `/done` confirmation + delivery state, no scores; bare `/done` redirects to latest receipt
-- [x] `/results` hall (your papers + published + delayed states) + `/results/[id]` name+roll marks lookup (demo: Aarav Sharma / 1042)
+- [x] `/results` hall (your papers + published + delayed states) + `/results/[id]` name+roll marks lookup. Sep 24 fix: both now read live Sanity data (`fetchExams`, `fetchReturnedSubmission` GROQ on `status=="returned"`) instead of mocks; mock fallback only when offline. GROQ: `*[_type=="submission" && exam->slug.current==$examId && lower(studentName)==lower($name) && rollNo==$roll && status=="returned"]|order(_createdAt desc)[0]{studentName,rollNo,college,marksAwarded,feedback,"totalMarks":exam->totalMarks,"returnedAt":coalesce(_updatedAt,submittedAt)}`
 - [x] Notice Board (`#notices`, schedulable + PDF) + red results CTAs; responsive (phone check still open)
 
 ### C. Teacher side (standalone Studio `studio/`, not in this site)
@@ -59,16 +61,16 @@ Key GROQ:
 - [ ] View submissions table
 
 ### D. Bonus (pick ONE)
-- [ ] Show workflow transitions with screenshots
-- [ ] Custom input: marks auto-sum or MCQ answer picker
+- [ ] Show workflow transitions with screenshots (pairs with §4C dry-run)
+- [x] Custom input: MCQ answer picker — `src/sanity/schemas/AnswerPicker.tsx` custom Sanity input renders the question's `options[]` as radio choices for `correctAnswer` (click, never retype) + schema validation rejects a non-matching option. Deployed to Studio Sep 24, so this one is DONE — screenshot it for the DEV post.
 
 ### E. DEV submission
-- [x] Public GitHub repo (Torp-dev/exam-os, pushed) — [ ] README still boilerplate, rewrite pending
-- [x] Vercel deploy live (https://exam-os-delta.vercel.app/) — [ ] env vars set + redeploy for live-Sanity mode pending
+- [x] Public GitHub repo (Torp-dev/exam-os, pushed) — [x] README rewritten Sep 24 (live links, student/teacher flows, schema + GROQ explanation, local setup, seed commands, env table)
+- [x] Vercel deploy live (https://exam-os-delta.vercel.app/) — [x] fully Sanity-backed, verified Sep 24 (4 real papers: GK ongoing + 3 upcoming, notice with PDF)
 - [ ] 90-sec demo video (join judge paper → timer → Time's UP → receipt → results lookup)
 - [ ] DEV post tags: devchallenge, sanitychallenge, sanity, ai + prompts writeup (§6 grows below)
 - [ ] Sanity Project Details in post (REQUIRED per challenge rules — ours, not judges'): projectId + public dataset URL so the Sanity team can inspect modeling. Missing = possibly incomplete. Source: https://dev.to/challenges/sanity-2026-09-16 ("Every submission needs to include your Sanity project ID or a link to a public dataset URL")
-- [ ] Dataset `production` public-read so judges + deployed app can query it; `SANITY_WRITE_TOKEN` stays server-side (Vercel env only), never in the post
+- [x] Dataset `production` public-read VERIFIED Sep 24 (unauthenticated query returns docs); `SANITY_WRITE_TOKEN` stays server-side (Vercel Secret env only), never in the post
 - [ ] Test creds if login added, else keep open (student flow is no-login)
 
 Build order: A -> B -> E. Workflow status is 10 min, high value.
@@ -96,6 +98,11 @@ Build order: A -> B -> E. Workflow status is 10 min, high value.
 - Prompt 14 (Sep 24): hero taller + footer → Notice Board + View Notice; then schedulable notices + PDF attachments (`showFrom`, file field, `seed-notices.mjs`); Check-exam-results → red, header bg-less.
 - Prompt 15 (Sep 24): "Studio localhost not opening" — was already up (200); user-side URL/cache issue.
 - Prompt 16 (Sep 24): "View Notice + notices not showing" — resolved itself: 60s ISR cache (`revalidate:60` on announcements).
+- Prompt 17 (Sep 24): "Sanity site where do we deploy it" — worked. `cd studio && npx sanity deploy --url exam-os-studio` → https://exam-os-studio.sanity.studio/; appId `ta59wtuwefou3q6dcca3nyat` pinned in `studio/sanity.cli.ts` so redeploys skip the prompt.
+- Prompt 18 (Sep 24): "Vercel Add Connection / Integrations — Sanity" — initially misleading. The Vercel Sanity integration had provisioned a DIFFERENT project (`project-cerise-branch`); Vercel served its empty dataset → `fetchExams` silently fell back to 6 mocks while the "Sanity live" badge still showed (badge only checked env var presence). Fix: deleted the integration (safe — real project was created directly at sanity.io), set the 4 vars manually in Vercel, redeployed. Verified live data: 4 real papers on https://exam-os-delta.vercel.app/. Lesson: badge must reflect actual query success, not env presence; and "is it really live?" = compare page titles against an unauthenticated dataset query.
+- Prompt 19 (Sep 24): "use ONgoing instead of live" — worked. Display-only rename (`{st === "live" ? "ongoing" : st}` in `src/app/page.tsx`, nav CTAs "View ongoing papers"); internal `live` status + Sanity `workflow` values unchanged.
+- Prompt 20 (Sep 24): "add those extras" — added a Sanity-native custom input: `src/sanity/schemas/AnswerPicker.tsx` renders `options[]` as radio choices for `correctAnswer` (no re-typing) + validation rejecting a non-matching option. Studio rebuilt + redeployed.
+- Prompt 21 (Sep 24): "read everything from everything of this page content and find the mistakes" — found 7 (mock-backed results pages, fake auto-checked copy, "Paper goes live in", 1194-day countdown, yearless dates). All fixed in `efcecf1b`; results now query real `status=="returned"` submissions.
 - What broke + fix:
   - Turbopack build fails on android/arm64 (no native bindings) → `next build/dev --webpack`.
   - Tailwind v4 fails (no lightningcss android-arm64 binary) → downgraded to tailwindcss@3 + autoprefixer + tailwind.config.js, dropped next/font/Geist.
@@ -105,15 +112,18 @@ Build order: A -> B -> E. Workflow status is 10 min, high value.
   - Sep 24: deleting `src/app/studio/` left stale `.next/dev/types/.../studio/...` → type-check failed → `rm -rf .next` + rebuild.
   - Sep 24: `next build` collected `/api/submit` with real projectId — fine (valid format); only placeholder `YOUR_PROJECT_ID` breaks it.
   - Sep 24: ISR caches bite (`revalidate:30/60`) — after seeding/deleting docs, home can look stale for ~1 min; wait before declaring breakage.
+  - Sep 24: Vercel Sanity integration ≠ our project. It created `project-cerise-branch`; deleting the integration is safe (real project lives at sanity.io) but never re-add it unless you explicitly link `vju5fidf` — otherwise the app silently serves mocks.
+  - Sep 24: `SANITY_WRITE_TOKEN` on Vercel must be marked Secret. `NEXT_PUBLIC_*` are public by design (they're bundled) — never put the token behind a `NEXT_PUBLIC_` prefix.
 
-## 7. Next steps for agent [updated Sep 24 evening — app LIVE on Sanity data]
-Live: frontend http://localhost:3000 + Studio http://localhost:3333 + Vercel https://exam-os-delta.vercel.app/ (mock mode until env vars set). Dataset: 4 exams + 34 Qs + 1 visible notice + 1 scheduled. Writes proven locally.
-1. USER ACTION: Vercel env vars (`NEXT_PUBLIC_SANITY_PROJECT_ID=vju5fidf`, `DATASET=production`, `API_VERSION`, `SANITY_WRITE_TOKEN`) + redeploy → live site fully Sanity-backed.
-2. Teacher dry-run in Studio: check a real submission (submitted→checking→checked + marksAwarded/feedback→returned) — needed for §4C + bonus screenshots.
-3. `sanity deploy` (from `studio/`) for a hosted Studio URL (judges link).
-4. Rewrite README (still boilerplate) — judges open the repo.
-5. 90-sec demo video + DEV post (tags + projectId vju5fidf + dataset URL + prompts §6).
-6. Pick ONE bonus (§4D): workflow-transition screenshots (cheap, pairs with step 2).
+## 7. Next steps for agent [updated Sep 24 night — infrastructure DONE, submission content left]
+Live: Vercel https://exam-os-delta.vercel.app/ (verified Sanity-backed) + hosted Studio https://exam-os-studio.sanity.studio/ + local frontend :3000 / Studio :3333. Dataset `vju5fidf/production`: 4 exams + 34 Qs + 2 notices, public-read. Writes proven. Growth Trial active; auto-downgrade to Free is harmless (dataset goes public anyway, well under quotas).
+
+Remaining, in order:
+1. USER ACTION — teacher dry-run: submit the GK paper on Vercel with a throwaway name/roll, then in Studio walk that submission `submitted → checking → checked` (set `marksAwarded` + `feedback`) → `returned`; screenshot each state. Fills §4C + the workflow-screenshots bonus. NOTE: to make that result visible at `/results/<id>`, also set the paper's `resultAt` in the past (otherwise the lookup shows "not published yet").
+2. Screenshot the MCQ answer-picker (`AnswerPicker.tsx`) in Studio — proves the "customize the interface" criterion.
+3. 90-sec demo video: join GK paper → timer → submit → receipt → results lookup.
+4. Publish DEV post: tags `devchallenge, sanitychallenge, sanity, ai`, include projectId `vju5fidf` + public dataset query URL, live app + Studio links, and prompts §6 (honest build story is judged).
+5. Optional: drop the misleading "Sanity live" badge in `src/app/page.tsx` or make it reflect an actual successful query (see Prompt 18 lesson).
 
 Stack notes: Next.js App Router (webpack only on this box), `next-sanity` + `sanity` 6.16.0, GROQ with mock fallback + normalization, Tailwind v3, gsap + @gsap/react, Vercel.
 
@@ -152,3 +162,11 @@ Stack notes: Next.js App Router (webpack only on this box), `next-sanity` + `san
 - Titles + exact times (user request Sep 24): papers retitled to "Subject - X Semester - N (Topic)" pattern, classSem shortened to "Semester - N". List rows now show exact clocks (live "Ends 04:30 PM", upcoming "Starts 10:00 AM"); detail page shows ends-at clock + starts-at datetime. Duration timer already runs exact `durationMins * 60`.
 - Titles now "Subject - X | Semester - N (Topic)" (user request Sep 24).
 - FRONTEND DECLARED DONE (user, Sep 24) — only small tweaks later. Remaining work is backend/submission: Sanity project + seed + CORS + write token (user actions), live-data verify, Vercel deploy, demo video, DEV post, README rewrite.
+
+## 8c. Build log (Sep 24, later — infra + polish)
+- VERCEL FIX (integration trap): Vercel's Sanity integration had auto-provisioned `project-cerise-branch`; the deploy queried that empty dataset, so `fetchExams` fell back to the 6 mock papers while the "Sanity live" badge (which only checked env presence) lied. Deleted the integration (real `vju5fidf` lives under the Sanity account, unaffected), imported the 4 vars manually (`vercel-import.env`, then deleted — `.env*` is gitignored), redeployed. Verified: page titles now match an unauthenticated `vju5fidf` query (Geography / History / English / GK judge demo). `SANITY_WRITE_TOKEN` stored as a Vercel Secret.
+- STUDIO DEPLOYED: `npx sanity deploy --url exam-os-studio` → https://exam-os-studio.sanity.studio/; CLI suggests an appId, pinned in `studio/sanity.cli.ts` (`ta59wtuwefou3q6dcca3nyat`) so future deploys are non-interactive. Studio stays login-walled (judges inspect via projectId + public dataset, per rules).
+- CONTENT/UX PASS: hero rewritten to "An exam hosting platform powered by Sanity." (inline pill image later removed at user request); papers sorted live-first (`rank = {live:0, upcoming:1, closed:2}`); badge label `live` → `ongoing` (display only; internal status untouched); judge paper title cleaned to "Subject - General Knowledge | Semester - 1 (Current Affairs)" (was "Judge Demo — always live"); its `resultAt` moved from 2030 to +30d; receipt date card now includes the year.
+- CUSTOM STUDIO INPUT (bonus): `src/sanity/schemas/AnswerPicker.tsx` — MCQ `correctAnswer` renders `options[]` as radios (no re-typing) + schema validation rejecting non-matching answers. Studio rebuilt + redeployed. This satisfies challenge "did you customize the interface?".
+- BUG SWEEP (7 issues found by reading the code, fixed `efcecf1b`): `/results` published list + `/results/[id]` lookup were mock-only (showed fake "Maths Sem 2 published" while Sanity had no such exam) → both now use `fetchExams` / new `fetchReturnedSubmission` GROQ (`status=="returned"`, name case-insensitive, roll exact, joins `exam->totalMarks`); removed "MCQs are auto-checked" claim from mock instructions (no auto-grading anywhere); "Paper goes live in" → "Paper opens in"; `Countdown` shows a date (not "1194d 14:06") for targets >30d out; result/exam date formatting includes the year.
+- README REWRITTEN: what it is, live links (app + Studio + project id), student/teacher flows, schema + GROQ explanation with inspect URLs, local run, seed commands, env table, routes. Boilerplate gone.
