@@ -39,19 +39,19 @@ export default function Hero() {
       <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center px-4 pb-40 pt-48 text-center md:pb-56 md:pt-64">
         <h1 className="hero-h1 font-display w-full max-w-5xl font-extrabold text-balance">
           <span className="hero-line block">
-            One clock
+            Same paper,
             <span
               className="mx-3 inline-block h-[0.72em] w-[1.9em] rounded-full bg-cover bg-center align-middle"
               style={{ backgroundImage: "url(https://picsum.photos/seed/clock/400/160)" }}
             />
-            every
+            every college,
           </span>
-          <span className="hero-line block">college, zero leaks.</span>
+          <span className="hero-line block">same second.</span>
         </h1>
 
         <p className="hero-line mt-6 w-full max-w-2xl text-base leading-relaxed text-white/70 md:text-lg">
-          Teachers publish papers in Sanity. Students on every campus PC see the same
-          countdown, write against the same timer, and get auto-submitted at zero.
+          Teachers publish once in Sanity. Students open the paper on any campus PC,
+          write against one shared timer, and get auto-submitted at zero.
         </p>
 
         <div className="hero-line mt-8 flex flex-col items-center gap-3 sm:flex-row">

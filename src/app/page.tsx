@@ -17,6 +17,10 @@ const badge: Record<string, string> = {
 export default async function Home() {
   const [exams, announcements] = await Promise.all([fetchExams(), fetchAnnouncements()]);
   const now = Date.now();
+  const rank = { live: 0, upcoming: 1, closed: 2 } as const;
+  const sorted = [...exams].sort(
+    (a, b) => rank[getExamStatus(a, now)] - rank[getExamStatus(b, now)]
+  );
 
   return (
     <main className="w-full max-w-full overflow-x-hidden bg-paper text-ink">
@@ -45,7 +49,7 @@ export default async function Home() {
         </div>
 
         <div className="overflow-hidden rounded-3xl border border-black/10 bg-white">
-          {exams.map((e, i) => {
+          {sorted.map((e, i) => {
             const st = getExamStatus(e, now);
             const liveNow = st === "live";
             return (
