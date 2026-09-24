@@ -1,6 +1,25 @@
 import { defineConfig } from "sanity";
 import { structureTool, type StructureBuilder } from "sanity/structure";
 import { schemaTypes } from "../src/sanity/schemas";
+import { AnswerSheet } from "../src/sanity/schemas/AnswerSheet";
+
+// Questions + "add" shortcut for one paper: each subject teacher works
+// inside their own paper, never in a mixed pile.
+function questionsForExam(S: StructureBuilder, examId: string) {
+  return S.listItem()
+    .title("Questions for this paper")
+    .child(
+      S.documentList()
+        .title("Questions for this paper")
+        .schemaType("question")
+        .filter('_type == "question" && exam._ref == $examId')
+        .params({ examId })
+        .defaultOrdering([{ field: "number", direction: "asc" }])
+        .initialValueTemplates([
+          S.initialValueTemplateItem("question-for-paper", { examId }),
+        ])
+    );
+}
 
 // Submissions for one paper in one review state (teacher opens the paper,
 // sees only its queue).
@@ -67,6 +86,7 @@ export default defineConfig({
                         S.listItem()
                           .title("Open paper")
                           .child(S.document().documentId(examId).schemaType("exam")),
+                        questionsForExam(S, examId),
                         submissionsForExam(S, examId, "submitted", "New submissions"),
                         submissionsForExam(S, examId, "checking", "Being checked"),
                         submissionsForExam(S, examId, "checked", "Checked — ready to return"),
@@ -81,10 +101,31 @@ export default defineConfig({
               ["exam", "question", "announcement"].includes(item.getId() ?? "")
             ),
           ]),
+      defaultDocumentNode: (S, { schemaType }) =>
+        schemaType === "submission"
+          ? S.document().views([
+              S.view.component(AnswerSheet).title("Answer sheet"),
+              S.view.form().title("Marks"),
+            ])
+          : S.document(),
     }),
   ],
 
   schema: {
     types: schemaTypes,
+    templates: (prev) => [
+      ...prev,
+      {
+        id: "question-for-paper",
+        title: "Question for this paper",
+        schemaType: "question",
+        parameters: [{ name: "examId", type: "string" }],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        value: ({ examId }: any) => ({
+          exam: examId ? { _type: "reference", _ref: examId } : undefined,
+          type: "mcq",
+        }),
+      },
+    ],
   },
 });
