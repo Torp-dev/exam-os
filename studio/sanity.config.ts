@@ -2,6 +2,7 @@ import { defineConfig } from "sanity";
 import { structureTool, type StructureBuilder } from "sanity/structure";
 import { schemaTypes } from "../src/sanity/schemas";
 import { AnswerSheet } from "../src/sanity/schemas/AnswerSheet";
+import { ResultReadiness } from "../src/sanity/schemas/ResultReadiness";
 
 // Questions + "add" shortcut for one paper: each subject teacher works
 // inside their own paper, never in a mixed pile.
@@ -159,13 +160,21 @@ export default defineConfig({
               ["exam", "question", "announcement"].includes(item.getId() ?? "")
             ),
           ]),
-      defaultDocumentNode: (S, { schemaType }) =>
-        schemaType === "submission"
-          ? S.document().views([
-              S.view.component(AnswerSheet).title("Answer sheet"),
-              S.view.form().title("Marks"),
-            ])
-          : S.document(),
+      defaultDocumentNode: (S, { schemaType }) => {
+        if (schemaType === "submission") {
+          return S.document().views([
+            S.view.component(AnswerSheet).title("Answer sheet"),
+            S.view.form().title("Marks"),
+          ]);
+        }
+        if (schemaType === "exam") {
+          return S.document().views([
+            S.view.form().title("Details"),
+            S.view.component(ResultReadiness).title("Result"),
+          ]);
+        }
+        return S.document();
+      },
     }),
   ],
 

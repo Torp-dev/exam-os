@@ -11,6 +11,29 @@ export const submission = defineType({
     defineField({ name: "studentName", title: "Student", type: "string", readOnly: true }),
     defineField({ name: "rollNo", title: "Roll no.", type: "string", readOnly: true }),
     defineField({ name: "college", title: "College", type: "string", readOnly: true }),
+    defineField({ name: "submittedAt", title: "Submitted at", type: "datetime", readOnly: true }),
+    defineField({
+      name: "status", title: "Checking status", type: "string",
+      options: { list: ["submitted", "checking", "checked", "returned"], layout: "radio" },
+      initialValue: "submitted",
+      description: "submitted → checking → checked → returned (result visible to student).",
+    }),
+    defineField({
+      name: "marksAwarded", title: "Marks awarded (teacher)", type: "number",
+      description: "Read the Answer sheet tab, total the paper, enter ONE total here. Never shown to students before results publish.",
+      validation: (r) =>
+        r.min(0).custom((v, ctx) => {
+          const parent = ctx.parent as { snapshot?: { totalMarks?: number } } | undefined;
+          const max = parent?.snapshot?.totalMarks;
+          if (typeof v === "number" && typeof max === "number" && v > max)
+            return `Exceeds paper total (${max}) — check the addition`;
+          return true;
+        }),
+    }),
+    defineField({
+      name: "feedback", title: "Teacher feedback", type: "text",
+      description: "One or two lines the student will read with their marks.",
+    }),
     defineField({
       name: "answers", title: "Student answers (locked)", type: "array", readOnly: true,
       description: "Written by the student at submit time — never edit. Check in the Answer sheet tab.",
@@ -22,26 +45,6 @@ export const submission = defineType({
         ],
       }],
     }),
-    defineField({ name: "submittedAt", title: "Submitted at", type: "datetime", readOnly: true }),
-    defineField({
-      name: "marksAwarded", title: "Marks awarded (teacher)", type: "number",
-      description: "Filled by the teacher in Studio during checking. Never shown to students before results publish.",
-      validation: (r) =>
-        r.min(0).custom((v, ctx) => {
-          const parent = ctx.parent as { snapshot?: { totalMarks?: number } } | undefined;
-          const max = parent?.snapshot?.totalMarks;
-          if (typeof v === "number" && typeof max === "number" && v > max)
-            return `Exceeds paper total (${max}) — check the addition`;
-          return true;
-        }),
-    }),
-    defineField({
-      name: "status", title: "Checking status", type: "string",
-      options: { list: ["submitted", "checking", "checked", "returned"], layout: "radio" },
-      initialValue: "submitted",
-      description: "submitted → checking → checked → returned (result visible to student).",
-    }),
-    defineField({ name: "feedback", title: "Teacher feedback", type: "text" }),
     defineField({
       name: "snapshot", title: "Paper snapshot (auto-filled at submit)", type: "object",
       readOnly: true,
