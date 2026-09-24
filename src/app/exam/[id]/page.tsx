@@ -79,7 +79,7 @@ export default function ExamDetail() {
             <div className="mt-6 rounded-2xl bg-paper p-5">
               {st === "upcoming" && (
                 <div className="text-center">
-                  <p className="text-sm text-zinc-500">Paper goes live in</p>
+                  <p className="text-sm text-zinc-500">Paper opens in</p>
                   <p className="font-display mt-1 text-4xl font-extrabold tabular-nums">
                     <Countdown targetISO={exam.releaseAt} />
                   </p>

@@ -28,6 +28,36 @@ const ANNOUNCEMENTS_QUERY = groq`*[_type == "announcement" && (!defined(showFrom
   "id": _id, title, message, "fileUrl": attachment.asset->url
 }`;
 
+// Teacher-checked mark sheet: only status=="returned" docs are student-visible.
+const RETURNED_SUBMISSION_QUERY = groq`*[_type == "submission" && exam->slug.current == $examId && lower(studentName) == lower($name) && rollNo == $roll && status == "returned"] | order(_createdAt desc)[0] {
+  studentName, rollNo, college, marksAwarded, feedback,
+  "totalMarks": exam->totalMarks,
+  "returnedAt": coalesce(_updatedAt, submittedAt)
+}`;
+
+export interface ReturnedSubmission {
+  studentName: string;
+  rollNo: string;
+  college: string;
+  marksAwarded: number;
+  totalMarks: number;
+  feedback: string;
+  returnedAt: string;
+}
+
+export async function fetchReturnedSubmission(
+  examId: string, name: string, roll: string
+): Promise<ReturnedSubmission | null> {
+  if (!configured) return null;
+  try {
+    return await client.fetch<ReturnedSubmission | null>(
+      RETURNED_SUBMISSION_QUERY, { examId, name: name.trim(), roll: roll.trim() }
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchExams(): Promise<Exam[]> {
   if (!configured) return mockExams();
   try {

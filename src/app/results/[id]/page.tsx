@@ -1,16 +1,23 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { findPublishedResult, getExams } from "@/lib/exams";
+import { findPublishedResult, getExams, type Exam } from "@/lib/exams";
+import { fetchExams, fetchReturnedSubmission } from "@/sanity/queries";
 
 export default function ResultLookup() {
   const { id } = useParams<{ id: string }>();
-  const exam = useMemo(() => getExams().find((e) => e.id === id), [id]);
+  const [liveExam, setLiveExam] = useState<Exam | null>(null);
+  useEffect(() => {
+    fetchExams().then((all) => setLiveExam(all.find((e) => e.id === id) ?? null)).catch(() => {});
+  }, [id]);
+  const mockExam = useMemo(() => getExams().find((e) => e.id === id), [id]);
+  const exam = liveExam ?? mockExam;
   const [name, setName] = useState("");
   const [roll, setRoll] = useState("");
   const [err, setErr] = useState("");
+  const [checking, setChecking] = useState(false);
   const [lookedUp, setLookedUp] = useState(false);
   const [found, setFound] = useState<ReturnType<typeof findPublishedResult>>(null);
 
@@ -25,15 +32,38 @@ export default function ResultLookup() {
 
   const published = exam.resultAt ? Date.now() > new Date(exam.resultAt).getTime() : false;
 
-  const check = () => {
+  const check = async () => {
     if (!name.trim() || !roll.trim()) {
       setErr("Enter your name and 4-digit roll number.");
       return;
     }
-    const hit = findPublishedResult(exam.id, name, roll);
-    setFound(hit);
-    setLookedUp(true);
-    setErr(hit ? "" : "No published result for this name and roll number.");
+    setChecking(true);
+    setErr("");
+    try {
+      // Live teacher-checked mark sheet first…
+      const live = await fetchReturnedSubmission(exam.id, name, roll);
+      if (live && live.marksAwarded != null) {
+        setFound({
+          examId: exam.id,
+          studentName: live.studentName,
+          rollNo: live.rollNo,
+          college: live.college,
+          marksAwarded: live.marksAwarded,
+          totalMarks: live.totalMarks,
+          feedback: live.feedback ?? "",
+          returnedAt: live.returnedAt,
+        });
+        setLookedUp(true);
+        return;
+      }
+      // …offline/demo fallback.
+      const hit = findPublishedResult(exam.id, name, roll);
+      setFound(hit);
+      setLookedUp(true);
+      setErr(hit ? "" : "No published result for this name and roll number.");
+    } finally {
+      setChecking(false);
+    }
   };
 
   const pct = found && found.totalMarks ? Math.round((found.marksAwarded / found.totalMarks) * 100) : 0;
@@ -69,11 +99,11 @@ export default function ResultLookup() {
                 inputMode="numeric" maxLength={4}
                 className="rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none focus:border-black" />
               {err && <p className="text-sm font-medium text-red-600">{err}</p>}
-              <button onClick={check}
-                className="rounded-xl bg-ink py-3 text-sm font-semibold text-white transition hover:bg-zinc-800">
-                View result
+              <button onClick={check} disabled={checking}
+                className="rounded-xl bg-ink py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60">
+                {checking ? "Checking…" : "View result"}
               </button>
-              <p className="text-xs text-zinc-400">Demo result: Aarav Sharma / 1042</p>
+              {!liveExam && <p className="text-xs text-zinc-400">Demo result: Aarav Sharma / 1042</p>}
             </div>
           </div>
         ) : (

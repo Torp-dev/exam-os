@@ -2,15 +2,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { getExamStatus, getExams, type ExamResult } from "@/lib/exams";
+import { getExamStatus, getExams, type Exam, type ExamResult } from "@/lib/exams";
+import { fetchExams } from "@/sanity/queries";
 
 function fmtDT(iso: string) {
-  return new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export default function Results() {
   const [results, setResults] = useState<ExamResult[]>([]);
   const [ready, setReady] = useState(false);
+  const [liveExams, setLiveExams] = useState<Exam[]>([]);
+  const [examsReady, setExamsReady] = useState(false);
+
+  useEffect(() => {
+    fetchExams().then((all) => { setLiveExams(all); setExamsReady(true); }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const list: ExamResult[] = [];
@@ -29,9 +36,10 @@ export default function Results() {
   }, []);
 
   const now = Date.now();
-  const published = getExams().filter(
+  // Live Sanity papers (fetchExams falls back to mocks only when offline).
+  const published = examsReady ? liveExams.filter(
     (e) => getExamStatus(e, now) === "closed" && e.resultAt && now > new Date(e.resultAt).getTime()
-  );
+  ) : [];
 
   return (
     <main className="w-full max-w-full overflow-x-hidden bg-paper pt-28">

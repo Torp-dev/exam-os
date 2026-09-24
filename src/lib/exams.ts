@@ -67,7 +67,7 @@ export function getExams(): Exam[] {
       workflow: "live",
       instructions: [
         "Do not refresh during the last 60 seconds — answers auto-submit at 0:00.",
-        "MCQs carry 2 marks each and are auto-checked. Written answers are checked by teachers.",
+        "Checking happens in Sanity — teachers award all marks, nothing is scored on this screen.",
         "Keep your roll number ready. One submission per student.",
       ],
     },
@@ -85,7 +85,7 @@ export function getExams(): Exam[] {
       workflow: "live",
       instructions: [
         "45 minutes duration. Auto-submit at 0:00.",
-        "MCQs carry 2 marks each and are auto-checked. Written answers are checked by teachers.",
+        "Checking happens in Sanity — teachers award all marks, nothing is scored on this screen.",
         "Keep your roll number ready. One submission per student.",
       ],
     },
