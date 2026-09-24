@@ -42,12 +42,7 @@ export default function Hero() {
             An exam hosting
           </span>
           <span className="hero-line block">
-            platform
-            <span
-              className="mx-3 inline-block h-[0.72em] w-[1.9em] rounded-full bg-cover bg-center align-middle"
-              style={{ backgroundImage: "url(https://picsum.photos/seed/clock/400/160)" }}
-            />
-            powered
+            platform powered
           </span>
           <span className="hero-line block">by Sanity.</span>
         </h1>
