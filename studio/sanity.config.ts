@@ -65,23 +65,56 @@ export default defineConfig({
           .title("Exam Host")
           .items([
             S.listItem()
-              .title("Needs checking")
+              .title("Post Notice")
               .child(
                 S.list()
-                  .title("Needs checking")
+                  .title("Post Notice")
                   .items([
-                    submissionsByStatus(S, "submitted", "New submissions"),
-                    submissionsByStatus(S, "checking", "Being checked"),
+                    S.listItem()
+                      .title("New notice")
+                      .child(S.document().schemaType("announcement").initialValueTemplate("new-notice")),
+                    S.listItem()
+                      .title("Recent notices")
+                      .child(
+                        S.documentList()
+                          .title("Recent notices")
+                          .schemaType("announcement")
+                          .filter('_type == "announcement"')
+                          .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+                      ),
                   ])
               ),
             S.listItem()
-              .title("Per paper")
+              .title("Create Exam")
               .child(
-                S.documentTypeList("exam")
-                  .title("Per paper")
+                S.list()
+                  .title("Create Exam")
+                  .items([
+                    S.listItem()
+                      .title("New exam paper")
+                      .child(S.document().schemaType("exam").initialValueTemplate("new-exam")),
+                    S.listItem()
+                      .title("Recent papers")
+                      .child(
+                        S.documentList()
+                          .title("Recent papers")
+                          .schemaType("exam")
+                          .filter('_type == "exam"')
+                          .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+                      ),
+                  ])
+              ),
+            S.listItem()
+              .title("Check Paper")
+              .child(
+                S.documentList()
+                  .title("Check Paper — ended exams")
+                  .schemaType("exam")
+                  .filter('_type == "exam" && dateTime(closeAt) <= dateTime(now())')
+                  .defaultOrdering([{ field: "closeAt", direction: "desc" }])
                   .child((examId: string) =>
                     S.list()
-                      .title("Paper queue")
+                      .title("Checking")
                       .items([
                         S.listItem()
                           .title("Open paper")
@@ -94,8 +127,30 @@ export default defineConfig({
                       ])
                   )
               ),
-            submissionsByStatus(S, "checked", "Checked — ready to return"),
-            submissionsByStatus(S, "returned", "Returned to students"),
+            S.listItem()
+              .title("Post Result")
+              .child(
+                S.documentList()
+                  .title("Post Result — ended exams")
+                  .schemaType("exam")
+                  .filter('_type == "exam" && dateTime(closeAt) <= dateTime(now())')
+                  .defaultOrdering([{ field: "closeAt", direction: "desc" }])
+                  .child((examId: string) =>
+                    S.list()
+                      .title("Result")
+                      .items([
+                        S.listItem()
+                          .title("Set result date")
+                          .child(
+                            S.document()
+                              .documentId(examId)
+                              .schemaType("exam")
+                          ),
+                        submissionsForExam(S, examId, "checked", "Ready to return"),
+                        submissionsForExam(S, examId, "returned", "Returned"),
+                      ])
+                  )
+              ),
             S.divider(),
             ...S.documentTypeListItems().filter((item) =>
               ["exam", "question", "announcement"].includes(item.getId() ?? "")
@@ -115,6 +170,18 @@ export default defineConfig({
     types: schemaTypes,
     templates: (prev) => [
       ...prev,
+      {
+        id: "new-exam",
+        title: "New exam paper",
+        schemaType: "exam",
+        value: { status: "draft" },
+      },
+      {
+        id: "new-notice",
+        title: "New notice",
+        schemaType: "announcement",
+        value: {},
+      },
       {
         id: "question-for-paper",
         title: "Question for this paper",
