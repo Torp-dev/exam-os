@@ -1,9 +1,16 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const router = useRouter();
+
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/");
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -21,14 +28,29 @@ export default function Navbar() {
             : "border-white/15 bg-black/40 shadow-none"
         }`}
       >
-        <Link
-          href="/"
-          className={`font-display text-sm font-extrabold tracking-tight ${
-            scrolled ? "text-ink" : "text-white"
-          }`}
-        >
-          Exam Host
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={goBack}
+            aria-label="Go back"
+            className={`flex h-8 w-8 items-center justify-center rounded-full border transition ${
+              scrolled
+                ? "border-black/10 bg-white text-ink hover:bg-zinc-100"
+                : "border-white/20 bg-white/10 text-white hover:bg-white/20"
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M10 3 5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <Link
+            href="/"
+            className={`font-display text-sm font-extrabold tracking-tight ${
+              scrolled ? "text-ink" : "text-white"
+            }`}
+          >
+            Exam Host
+          </Link>
+        </div>
         <div
           className={`hidden items-center gap-6 text-sm font-medium md:flex ${
             scrolled ? "text-zinc-600" : "text-white/70"
