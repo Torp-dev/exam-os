@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getExams, type ExamResult } from "@/lib/exams";
@@ -16,6 +16,22 @@ function DoneInner() {
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   }, [id]);
+  // Retry delivery to Sanity: first submit may have happened before the
+  // write token existed (local-only). Reopening this receipt re-sends it.
+  const retried = useRef(false);
+  const [delivery, setDelivery] = useState<string | null>(null);
+  useEffect(() => {
+    if (!result || retried.current) return;
+    retried.current = true;
+    fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...result }),
+    })
+      .then((r) => r.json())
+      .then((j) => setDelivery(j.stored === "sanity" ? "sanity" : "local"))
+      .catch(() => {});
+  }, [result]);
 
   if (!exam || !result) {
     return (
@@ -48,6 +64,7 @@ function DoneInner() {
             </p>
             <p className="mt-1 font-mono text-xs text-zinc-400">
               Submitted at {new Date(result.submittedAt).toLocaleString()}
+              {delivery === "sanity" ? " · saved to Sanity" : delivery === "local" ? " · saved on this device" : ""}
             </p>
             {auto && <p className="mt-2 text-sm font-medium text-red-600">Time ran out at 0:00 — the site took your answers automatically.</p>}
 
