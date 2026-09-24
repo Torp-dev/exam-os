@@ -15,6 +15,8 @@ function submissionsForExam(S: StructureBuilder, examId: string, status: string,
         .params({ examId, status })
         .defaultOrdering([{ field: "submittedAt", direction: "desc" }])
     );
+}
+
 // Teacher checking queue: submissions grouped by review state so the next
 // paper to check is one click away, newest first.
 function submissionsByStatus(S: StructureBuilder, status: string, title: string) {
