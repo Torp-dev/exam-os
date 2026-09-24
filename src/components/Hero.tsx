@@ -63,13 +63,13 @@ export default function Hero() {
           </Link>
           <Link
             href="/results"
-            className="rounded-full border border-white/25 px-7 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            className="rounded-full bg-red-600 px-7 py-3 text-sm font-semibold text-white transition hover:bg-red-500"
           >
             Check exam results
           </Link>
           <Link
             href="#notices"
-            className="rounded-full border border-white/25 px-7 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            className="rounded-full bg-amber-300 px-7 py-3 text-sm font-semibold text-black transition hover:bg-amber-200"
           >
             View Notice
           </Link>

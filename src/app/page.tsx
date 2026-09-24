@@ -123,6 +123,15 @@ export default async function Home() {
                 <div key={a.id} className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur transition hover:bg-white/10">
                   <p className="font-display text-lg font-bold">{a.title}</p>
                   <p className="mt-2 text-sm leading-relaxed text-white/70">{a.message}</p>
+                  {a.fileUrl && (
+                    <a
+                      href={a.fileUrl}
+                      download
+                      className="mt-3 inline-block rounded-full bg-amber-300 px-4 py-1.5 text-xs font-semibold text-black transition hover:bg-amber-200"
+                    >
+                      Download PDF
+                    </a>
+                  )}
                 </div>
               ))}
             </div>

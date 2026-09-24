@@ -24,8 +24,8 @@ const QUESTIONS_QUERY = groq`*[_type == "question" && exam->slug.current == $exa
   number, type, questionText, options, marks
 }`;
 
-const ANNOUNCEMENTS_QUERY = groq`*[_type == "announcement" && (!defined(showUntil) || showUntil > now())] | order(_createdAt desc) {
-  "id": _id, title, message
+const ANNOUNCEMENTS_QUERY = groq`*[_type == "announcement" && (!defined(showFrom) || showFrom <= now()) && (!defined(showUntil) || showUntil > now())] | order(_createdAt desc) {
+  "id": _id, title, message, "fileUrl": attachment.asset->url
 }`;
 
 export async function fetchExams(): Promise<Exam[]> {
@@ -55,7 +55,7 @@ export async function fetchQuestions(examId: string): Promise<Question[]> {
   }
 }
 
-export async function fetchAnnouncements(): Promise<{ id: string; title: string; message: string }[]> {
+export async function fetchAnnouncements(): Promise<{ id: string; title: string; message: string; fileUrl?: string }[]> {
   if (!configured) return ANNOUNCEMENTS;
   try {
     const rows = await client.fetch(ANNOUNCEMENTS_QUERY, {}, { next: { revalidate: 60 } });

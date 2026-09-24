@@ -35,7 +35,13 @@ export default function Navbar() {
           }`}
         >
           <Link href="/#papers" className="transition hover:text-current hover:opacity-100">
-            Papers
+            View live papers
+          </Link>
+          <Link href="/results" className="transition hover:text-current hover:opacity-100">
+            Check exam results
+          </Link>
+          <Link href="/#notices" className="transition hover:text-current hover:opacity-100">
+            View Notice
           </Link>
         </div>
         <Link
