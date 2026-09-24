@@ -21,11 +21,15 @@ export const submission = defineType({
       }],
     }),
     defineField({ name: "submittedAt", title: "Submitted at", type: "datetime" }),
-    defineField({ name: "autoScore", title: "MCQ auto-score", type: "number" }),
+    defineField({
+      name: "marksAwarded", title: "Marks awarded (teacher)", type: "number",
+      description: "Filled by the teacher in Studio during checking. Never shown to students before results publish.",
+    }),
     defineField({
       name: "status", title: "Checking status", type: "string",
-      options: { list: ["submitted", "checked", "returned"], layout: "radio" },
+      options: { list: ["submitted", "checking", "checked", "returned"], layout: "radio" },
       initialValue: "submitted",
+      description: "submitted → checking → checked → returned (result visible to student).",
     }),
     defineField({ name: "feedback", title: "Teacher feedback", type: "text" }),
   ],

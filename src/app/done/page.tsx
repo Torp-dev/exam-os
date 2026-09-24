@@ -2,7 +2,8 @@
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getExams, getQuestions, type ExamResult } from "@/lib/exams";
+import { getExams, type ExamResult } from "@/lib/exams";
+import Navbar from "@/components/Navbar";
 
 function DoneInner() {
   const sp = useSearchParams();
@@ -15,73 +16,70 @@ function DoneInner() {
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   }, [id]);
-  const questions = useMemo(() => getQuestions(id), [id]);
 
   if (!exam || !result) {
     return (
-      <main className="mx-auto max-w-xl px-4 py-16 text-center">
-        <p className="font-semibold">No submission found.</p>
-        <Link href="/" className="text-blue-600 underline">Back to exams</Link>
+      <main className="mx-auto max-w-xl px-4 py-32 text-center">
+        <p className="font-display text-xl font-bold">No submission found.</p>
+        <Link href="/" className="mt-2 inline-block text-sm font-medium underline">Back to exams</Link>
       </main>
     );
   }
 
-  const pct = result.totalMarks ? Math.round((result.autoScore / result.totalMarks) * 100) : 0;
+  const attempted = result.answers.filter((a) => a.answer.trim()).length;
+  const total = result.answers.length;
+  const resultAt = exam.resultAt ?? result.resultAt;
+  const delayed = resultAt ? Date.now() > new Date(resultAt).getTime() : false;
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="rounded-2xl border bg-white p-6 text-center">
-        <p className="text-3xl">✅</p>
-        <h1 className="mt-1 text-2xl font-bold">Answers {auto ? "auto-submitted" : "submitted"} — locked</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          {exam.title} · {result.studentName} ({result.rollNo}, {result.college})
-        </p>
-        <p className="mt-1 font-mono text-xs text-zinc-400">
-          Submitted at {new Date(result.submittedAt).toLocaleString()}
-        </p>
-        {auto && <p className="mt-2 text-sm text-red-600">Time ran out at 0:00 — the site took your answers automatically.</p>}
+    <main className="w-full max-w-full overflow-x-hidden bg-paper pt-28">
+      <Navbar />
+      <div className="mx-auto w-full max-w-2xl px-4 pb-24">
+        <div className="rounded-3xl border border-black/10 bg-white">
+          <div className="p-6 text-center md:p-8">
+            <span className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold uppercase ${auto ? "border-red-300 bg-red-50 text-red-700" : "border-green-300 bg-green-50 text-green-800"}`}>
+              {auto ? "Auto-submitted" : "Submitted"}
+            </span>
+            <h1 className="font-display mt-3 text-3xl font-extrabold tracking-tight">
+              Answers locked
+            </h1>
+            <p className="mt-1 text-sm text-zinc-500">
+              {exam.title} · {result.studentName} ({result.rollNo}, {result.college})
+            </p>
+            <p className="mt-1 font-mono text-xs text-zinc-400">
+              Submitted at {new Date(result.submittedAt).toLocaleString()}
+            </p>
+            {auto && <p className="mt-2 text-sm font-medium text-red-600">Time ran out at 0:00 — the site took your answers automatically.</p>}
 
-        <div className="mx-auto mt-4 grid max-w-md grid-cols-3 gap-2">
-          <div className="rounded-xl bg-zinc-100 p-3">
-            <p className="text-xl font-bold">{result.autoScore}/{result.totalMarks}</p>
-            <p className="text-xs text-zinc-500">MCQ score / total (written pending teacher)</p>
-          </div>
-          <div className="rounded-xl bg-zinc-100 p-3">
-            <p className="text-xl font-bold">{pct}%</p>
-            <p className="text-xs text-zinc-500">MCQ % of paper</p>
-          </div>
-          <div className="rounded-xl bg-zinc-100 p-3">
-            <p className="text-xl font-bold">{result.answers.filter((a) => a.answer.trim()).length}/{questions.length}</p>
-            <p className="text-xs text-zinc-500">Attempted</p>
+            <div className="mx-auto mt-5 grid max-w-md grid-cols-2 gap-2">
+              <div className="rounded-2xl bg-paper p-3">
+                <p className="font-display text-xl font-extrabold">{attempted}/{total}</p>
+                <p className="text-xs text-zinc-500">Questions attempted</p>
+              </div>
+              <div className="rounded-2xl bg-paper p-3">
+                <p className="font-display text-lg font-extrabold">
+                  {delayed ? "Delayed" : resultAt ? new Date(resultAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Later"}
+                </p>
+                <p className="text-xs text-zinc-500">Results publish at</p>
+              </div>
+            </div>
+
+            <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-zinc-600">
+              Your paper is now with your teacher. Checking, marks, and results all
+              happen in Sanity — nothing is scored on this screen.
+              {delayed
+                ? " Results were expected by now — checking is taking longer. Status: result delayed."
+                : resultAt
+                  ? ` Results publish on ${new Date(resultAt).toLocaleString()}.`
+                  : " Your college will announce the results date."}
+            </p>
+            <Link href="/results" className="mt-4 inline-block text-sm font-medium underline">Track this in results hall</Link>
           </div>
         </div>
-      </div>
 
-      <h2 className="mb-2 mt-6 text-sm font-semibold text-zinc-500">REVIEW (MCQ auto-checked)</h2>
-      <div className="space-y-2">
-        {questions.map((q) => {
-          const mine = result.answers.find((a) => a.questionNo === q.number)?.answer ?? "";
-          if (q.type !== "mcq") {
-            return (
-              <div key={q.id} className="rounded-xl border bg-white p-4 text-sm">
-                <p className="font-medium">Q{q.number}. {q.questionText} <span className="text-zinc-400">({q.marks}m · teacher checks)</span></p>
-                <p className="mt-1 whitespace-pre-wrap text-zinc-700">{mine || <i className="text-zinc-400">Not answered</i>}</p>
-              </div>
-            );
-          }
-          const ok = mine === q.correctAnswer;
-          return (
-            <div key={q.id} className={`rounded-xl border p-4 text-sm ${mine ? (ok ? "border-green-300 bg-green-50" : "border-red-300 bg-red-50") : "bg-white"}`}>
-              <p className="font-medium">Q{q.number}. {q.questionText}</p>
-              <p className="mt-1">Yours: <b>{mine || "—"}</b> {mine && (ok ? "✅" : "❌")}</p>
-              {!ok && <p>Correct: <b>{q.correctAnswer}</b></p>}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 text-center">
-        <Link href="/" className="rounded-xl bg-black px-5 py-2 text-sm font-semibold text-white">Back to exams</Link>
+        <div className="mt-8 text-center">
+          <Link href="/" className="inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">Back to exams</Link>
+        </div>
       </div>
     </main>
   );
@@ -89,7 +87,7 @@ function DoneInner() {
 
 export default function Done() {
   return (
-    <Suspense fallback={<main className="mx-auto max-w-xl px-4 py-16 text-center text-sm text-zinc-500">Loading result…</main>}>
+    <Suspense fallback={<main className="mx-auto max-w-xl px-4 py-32 text-center text-sm text-zinc-500">Loading result…</main>}>
       <DoneInner />
     </Suspense>
   );

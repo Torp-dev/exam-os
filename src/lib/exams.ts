@@ -12,6 +12,7 @@ export interface Exam {
   colleges: string[];
   releaseAt: string; // ISO
   closeAt: string; // ISO
+  resultAt?: string; // ISO — results publish at this time, checked in Sanity Studio
   durationMins: number;
   totalMarks: number;
   workflow: "draft" | "approved" | "scheduled" | "live" | "closed";
@@ -36,18 +37,17 @@ export interface Answer {
 
 export interface ExamResult {
   examId: string;
+  examTitle: string;
+  resultAt: string | null;
   studentName: string;
   rollNo: string;
   college: string;
   answers: Answer[];
   submittedAt: string;
-  autoScore: number;
-  mcqMax: number;
-  totalMarks: number;
   autoSubmitted: boolean;
 }
 
-// Times are relative to NOW so the demo always works.
+// Times are relative to NOW so the demo always works: 2 live, 3 upcoming.
 export function getExams(): Exam[] {
   const now = Date.now();
   const h = 3600_000;
@@ -55,12 +55,13 @@ export function getExams(): Exam[] {
   return [
     {
       id: "bsc-phy-sem3",
-      title: "BSc Physics Sem 3 — Mechanics & Optics",
+      title: "Subject - Physics | Semester - 3 (Mechanics & Optics)",
       subject: "Physics",
-      classSem: "BSc Sem 3",
+      classSem: "Semester - 3",
       colleges: ["Fergusson College", "MIT Pune", "St. Xavier's"],
       releaseAt: new Date(now - 1 * h).toISOString(),
       closeAt: new Date(now + 6 * h).toISOString(),
+      resultAt: new Date(now + 2 * d).toISOString(),
       durationMins: 30,
       totalMarks: 30,
       workflow: "live",
@@ -72,12 +73,48 @@ export function getExams(): Exam[] {
     },
     {
       id: "bsc-chem-sem3",
-      title: "BSc Chemistry Sem 3 — Organic Basics",
+      title: "Subject - Chemistry | Semester - 3 (Organic Basics)",
       subject: "Chemistry",
-      classSem: "BSc Sem 3",
+      classSem: "Semester - 3",
       colleges: ["Fergusson College", "MIT Pune"],
+      releaseAt: new Date(now - 30 * 60_000).toISOString(),
+      closeAt: new Date(now + 3 * h).toISOString(),
+      resultAt: new Date(now + 3 * d).toISOString(),
+      durationMins: 45,
+      totalMarks: 40,
+      workflow: "live",
+      instructions: [
+        "45 minutes duration. Auto-submit at 0:00.",
+        "MCQs carry 2 marks each and are auto-checked. Written answers are checked by teachers.",
+        "Keep your roll number ready. One submission per student.",
+      ],
+    },
+    {
+      id: "bsc-math-sem3",
+      title: "Subject - Mathematics | Semester - 3 (Linear Algebra)",
+      subject: "Mathematics",
+      classSem: "Semester - 3",
+      colleges: ["MIT Pune", "St. Xavier's"],
       releaseAt: new Date(now + 2 * d).toISOString(),
       closeAt: new Date(now + 2 * d + 3 * h).toISOString(),
+      resultAt: new Date(now + 4 * d).toISOString(),
+      durationMins: 60,
+      totalMarks: 50,
+      workflow: "scheduled",
+      instructions: [
+        "Paper goes live automatically at the scheduled time on all college PCs.",
+        "60 minutes duration. Auto-submit at 0:00.",
+      ],
+    },
+    {
+      id: "bsc-cs-sem3",
+      title: "Subject - Computer Science | Semester - 3 (Data Structures)",
+      subject: "Computer Science",
+      classSem: "Semester - 3",
+      colleges: ["Fergusson College", "St. Xavier's"],
+      releaseAt: new Date(now + 4 * d).toISOString(),
+      closeAt: new Date(now + 4 * d + 2 * h).toISOString(),
+      resultAt: new Date(now + 6 * d).toISOString(),
       durationMins: 45,
       totalMarks: 40,
       workflow: "scheduled",
@@ -87,13 +124,31 @@ export function getExams(): Exam[] {
       ],
     },
     {
+      id: "bsc-bio-sem2",
+      title: "Subject - Botany | Semester - 2 (Cell Biology)",
+      subject: "Botany",
+      classSem: "Semester - 2",
+      colleges: ["Fergusson College"],
+      releaseAt: new Date(now + 6 * d).toISOString(),
+      closeAt: new Date(now + 6 * d + 2 * h).toISOString(),
+      resultAt: new Date(now + 8 * d).toISOString(),
+      durationMins: 30,
+      totalMarks: 30,
+      workflow: "scheduled",
+      instructions: [
+        "Paper goes live automatically at the scheduled time on all college PCs.",
+        "30 minutes duration. Auto-submit at 0:00.",
+      ],
+    },
+    {
       id: "bsc-math-sem2",
-      title: "BSc Maths Sem 2 — Calculus (Closed)",
+      title: "Subject - Mathematics | Semester - 2 (Calculus)",
       subject: "Mathematics",
-      classSem: "BSc Sem 2",
-      colleges: ["St. Xavier's"],
+      classSem: "Semester - 2",
+      colleges: ["Fergusson College", "MIT Pune", "St. Xavier's"],
       releaseAt: new Date(now - 7 * d).toISOString(),
       closeAt: new Date(now - 7 * d + 2 * h).toISOString(),
+      resultAt: new Date(now - 2 * d).toISOString(),
       durationMins: 60,
       totalMarks: 50,
       workflow: "closed",
@@ -103,6 +158,18 @@ export function getExams(): Exam[] {
 }
 
 export function getQuestions(examId: string): Question[] {
+  if (examId === "bsc-chem-sem3") return [
+    { id: "q1", examId, number: 1, type: "mcq", questionText: "Which of these is an alcohol functional group?", options: ["-COOH", "-OH", "-CHO", "-NH2"], correctAnswer: "-OH", marks: 2 },
+    { id: "q2", examId, number: 2, type: "mcq", questionText: "General formula of alkanes?", options: ["CnH2n", "CnH2n+2", "CnH2n-2", "CnHn"], correctAnswer: "CnH2n+2", marks: 2 },
+    { id: "q3", examId, number: 3, type: "mcq", questionText: "Which test detects aldehydes?", options: ["Litmus test", "Tollens' test", "Flame test", "pH test"], correctAnswer: "Tollens' test", marks: 2 },
+    { id: "q4", examId, number: 4, type: "mcq", questionText: "Hybridisation of carbon in methane?", options: ["sp", "sp2", "sp3", "dsp2"], correctAnswer: "sp3", marks: 2 },
+    { id: "q5", examId, number: 5, type: "mcq", questionText: "Which is an electrophile?", options: ["OH-", "CN-", "NO2+", "Cl-"], correctAnswer: "NO2+", marks: 2 },
+    { id: "q6", examId, number: 6, type: "short", questionText: "Define isomerism with one example (2–3 lines).", marks: 4 },
+    { id: "q7", examId, number: 7, type: "short", questionText: "State Markovnikov's rule with one example.", marks: 3 },
+    { id: "q8", examId, number: 8, type: "short", questionText: "Distinguish between SN1 and SN2 in two points.", marks: 3 },
+    { id: "q9", examId, number: 9, type: "long", questionText: "Explain the mechanism of electrophilic aromatic substitution with energy profile. (150–200 words)", marks: 10 },
+    { id: "q10", examId, number: 10, type: "long", questionText: "An organic compound with molecular mass 60 gives effervescence with sodium. Identify it and write two reactions. Show steps.", marks: 10 },
+  ];
   if (examId !== "bsc-phy-sem3") return [];
   return [
     { id: "q1", examId, number: 1, type: "mcq", questionText: "Unit of force in SI system?", options: ["Joule", "Newton", "Watt", "Pascal"], correctAnswer: "Newton", marks: 2 },
@@ -134,16 +201,61 @@ export function formatCountdown(ms: number): string {
   return d > 0 ? `${d}d ${hh}:${mm}:${ss}` : `${hh}:${mm}:${ss}`;
 }
 
-export function scoreMcq(questions: Question[], answers: Answer[]): { scored: number; mcqMax: number } {
-  let scored = 0;
-  let mcqMax = 0;
-  for (const q of questions) {
-    if (q.type !== "mcq") continue;
-    mcqMax += q.marks;
-    const a = answers.find((x) => x.questionNo === q.number)?.answer.trim();
-    if (a && q.correctAnswer && a === q.correctAnswer) scored += q.marks;
-  }
-  return { scored, mcqMax };
+const ROLL_COLLEGES: Record<string, string> = {
+  "1": "Fergusson College",
+  "4": "Fergusson College",
+  "7": "Fergusson College",
+  "2": "MIT Pune",
+  "5": "MIT Pune",
+  "8": "MIT Pune",
+  "3": "St. Xavier's",
+  "6": "St. Xavier's",
+  "9": "St. Xavier's",
+  "0": "St. Xavier's",
+};
+
+// Roll numbers are 4 digits; the first digit encodes the college
+// (1/4/7 Fergusson, 2/5/8 MIT, 3/6/9/0 Xavier's), scoped to the colleges
+// this exam is synced to. Returns null if unknown.
+export function detectCollege(rollNo: string, colleges: string[]): string | null {
+  const roll = rollNo.trim();
+  if (!/^\d{4}$/.test(roll)) return null;
+  const name = ROLL_COLLEGES[roll.charAt(0)];
+  return name && colleges.includes(name) ? name : null;
+};
+
+export interface PublishedResult {
+  examId: string;
+  studentName: string;
+  rollNo: string;
+  college: string;
+  marksAwarded: number;
+  totalMarks: number;
+  feedback: string;
+  returnedAt: string;
+}
+
+// Demo stand-in for Sanity `submission` docs with status "returned".
+// Later: GROQ `*[_type=="submission" && exam->slug.current==$examId && status=="returned"]`.
+export const PUBLISHED_RESULTS: PublishedResult[] = [
+  {
+    examId: "bsc-math-sem2",
+    studentName: "Aarav Sharma",
+    rollNo: "1042",
+    college: "Fergusson College",
+    marksAwarded: 42,
+    totalMarks: 50,
+    feedback: "Strong calculus steps. Revise integration by parts for full marks.",
+    returnedAt: new Date(Date.now() - 2 * 24 * 3600_000).toISOString(),
+  },
+];
+
+export function findPublishedResult(examId: string, name: string, roll: string): PublishedResult | null {
+  const n = name.trim().toLowerCase();
+  const r = roll.trim();
+  return PUBLISHED_RESULTS.find(
+    (p) => p.examId === examId && p.studentName.toLowerCase() === n && p.rollNo === r
+  ) ?? null;
 }
 
 export const ANNOUNCEMENTS = [

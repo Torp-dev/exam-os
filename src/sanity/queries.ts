@@ -12,7 +12,7 @@ import {
 const EXAMS_QUERY = groq`*[_type == "exam"] | order(releaseAt desc) {
   "id": slug.current,
   title, subject, classSem, colleges,
-  releaseAt, closeAt, durationMins, totalMarks,
+  releaseAt, closeAt, resultAt, durationMins, totalMarks,
   "workflow": status,
   instructions
 }`;

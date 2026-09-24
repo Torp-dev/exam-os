@@ -28,7 +28,6 @@ export async function POST(req: Request) {
       college: body.college ?? "—",
       answers: body.answers,
       submittedAt: new Date().toISOString(),
-      autoScore: body.autoScore ?? 0,
       status: "submitted",
     });
     return NextResponse.json({ ok: true, stored: "sanity", id: doc._id });

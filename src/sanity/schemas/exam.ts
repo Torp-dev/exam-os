@@ -26,6 +26,10 @@ export const exam = defineType({
     }),
     defineField({ name: "totalMarks", title: "Total marks", type: "number", validation: (r) => r.required().min(1) }),
     defineField({
+      name: "resultAt", title: "Results publish at", type: "datetime",
+      description: "Students see marks only after this time. Checking happens in Studio before this.",
+    }),
+    defineField({
       name: "status", title: "Workflow status", type: "string",
       options: { list: ["draft", "approved", "scheduled", "live", "closed"], layout: "radio" },
       initialValue: "draft",
