@@ -22,7 +22,7 @@ Exam hosting site for colleges/universities.
 ## 3. Schemas (live in `production`)
 - `exam`: title, slug, subject, class/sem, colleges[string[]], releaseAt[datetime], closeAt[datetime], resultAt[datetime — results publish at, students see marks only after], durationMins[number], totalMarks[number], status[draft|approved|scheduled|live|closed], instructions[text]
 - `question`: exam[reference->exam], number[number], type[mcq|short|long], questionText[text], options[string[]] (mcq only), correctAnswer[string — edited via custom `AnswerPicker` input, not typed], marks[number]
-- `submission`: exam[reference->exam], studentName[string], rollNo[string], college[string], answers[{questionNo, answer}][array], submittedAt[datetime], marksAwarded[number — teacher fills in Studio], status[submitted|checking|checked|returned], feedback[text]. NO autoScore — review happens in Sanity, never on the student screen.
+- `submission`: exam[reference->exam], studentName[string], rollNo[string], college[string], answers[{questionNo, answer}][array], submittedAt[datetime], marksAwarded[number — teacher fills in Studio, validated vs paper total], status[submitted|checking|checked|returned], feedback[text], snapshot[readOnly frozen copy of the paper at submit time]. NO autoScore — review happens in Sanity, never on the student screen.
 - `announcement`: title, message, showFrom[datetime — scheduled visible-from], showUntil[datetime], attachment[file PDF → download link]
 - Review model (user decision Sep 24): student submits → answers land in Sanity as `submitted` → teacher checks in Studio (`checking` → `checked`, fills `marksAwarded` + `feedback`) → `returned` at `resultAt`. `/done` shows confirmation only (attempted count + publish date), never scores or correct answers.
 
@@ -56,8 +56,10 @@ Key GROQ:
 
 ### C. Teacher side (standalone Studio `studio/`, not in this site)
 - [x] Create exam + questions + notices in Studio (user has; seed scripts exist for reset/demo)
-- [ ] Move workflow draft->approved->scheduled->live->closed (demo: judge paper is live, 3 scheduled)
-- [ ] Check a real submission in Studio: submitted->checking->checked (marksAwarded + feedback) ->returned at resultAt
+- [x] Task home Sep 24: Post Notice / Create Exam / Check Paper (ended exams → per-paper question + submission queues) / Post Result (result date + return queue) — `studio/sanity.config.ts`
+- [x] Answer sheet tab Sep 24: `src/sanity/schemas/AnswerSheet.tsx` custom view shows full Q&A plain text incl. MCQ correct answers (snapshot-first), total at end; single `marksAwarded` with over-total validation
+- [x] Snapshot freeze Sep 24: `/api/submit` embeds `snapshot{totalMarks, questions[]}` + `_key` on all array items; re-submit dedupes by exam+roll
+- [ ] USER DRY-RUN: check a real submission in Studio (submitted→checking→checked→returned) + screenshots for DEV post
 - [ ] View submissions table
 
 ### D. Bonus (pick ONE)
@@ -103,6 +105,10 @@ Build order: A -> B -> E. Workflow status is 10 min, high value.
 - Prompt 19 (Sep 24): "use ONgoing instead of live" — worked. Display-only rename (`{st === "live" ? "ongoing" : st}` in `src/app/page.tsx`, nav CTAs "View ongoing papers"); internal `live` status + Sanity `workflow` values unchanged.
 - Prompt 20 (Sep 24): "add those extras" — added a Sanity-native custom input: `src/sanity/schemas/AnswerPicker.tsx` renders `options[]` as radio choices for `correctAnswer` (no re-typing) + validation rejecting a non-matching option. Studio rebuilt + redeployed.
 - Prompt 21 (Sep 24): "read everything from everything of this page content and find the mistakes" — found 7 (mock-backed results pages, fake auto-checked copy, "Paper goes live in", 1194-day countdown, yearless dates). All fixed in `efcecf1b`; results now query real `status=="returned"` submissions.
+- Prompt 22 (Sep 24): "checking papers is very hard for teachers" — rebuilt Studio home around 4 tasks (Post Notice, Create Exam, Check Paper, Post Result) in `studio/sanity.config.ts`; Check Paper lists ended exams only, Post Result pairs result-date setting with the return queue. Pushed `76d923e1`.
+- Prompt 23 (Sep 24): "Answers missing keys" (Studio error) — root cause: `/api/submit` wrote answer objects without `_key`. Fixed in route + backfilled 6 existing docs via Mutations API. Pushed `6a91e466`.
+- Prompt 24 (Sep 24): "submissions should show by exam subject" — added Per paper queues (each exam → its New/Checking/Checked/Returned lists). First push had a syntax error masked by `| tail` (lesson below); fixed, verified with real exit codes, deployed. `872c950a` + `a6dde245`.
+- Prompt 25 (Sep 24): "think harder, find problems, make workflow better" — found 4: blind MCQ checking (no correct answer in sheet), late question edits corrupting sheets, marks typos over total, duplicate sheets on re-submit. Fixed: paper `snapshot` frozen at submit (`submission.snapshot` readOnly object) + sheet reads snapshot with Correct lines, `marksAwarded` validation vs snapshot total, submit dedupes by exam+roll (`duplicate:true`). Pushed `b093473a`. Honestly NOT fixed: no bulk-return, no new-submission pings, manual `status` vs datetime clocks remain dual truth.
 - What broke + fix:
   - Turbopack build fails on android/arm64 (no native bindings) → `next build/dev --webpack`.
   - Tailwind v4 fails (no lightningcss android-arm64 binary) → downgraded to tailwindcss@3 + autoprefixer + tailwind.config.js, dropped next/font/Geist.
@@ -114,6 +120,9 @@ Build order: A -> B -> E. Workflow status is 10 min, high value.
   - Sep 24: ISR caches bite (`revalidate:30/60`) — after seeding/deleting docs, home can look stale for ~1 min; wait before declaring breakage.
   - Sep 24: Vercel Sanity integration ≠ our project. It created `project-cerise-branch`; deleting the integration is safe (real project lives at sanity.io) but never re-add it unless you explicitly link `vju5fidf` — otherwise the app silently serves mocks.
   - Sep 24: `SANITY_WRITE_TOKEN` on Vercel must be marked Secret. `NEXT_PUBLIC_*` are public by design (they're bundled) — never put the token behind a `NEXT_PUBLIC_` prefix.
+  - Sep 24: `| tail` in chained shell commands masks failures (`tail` exits 0). For build/deploy verification, echo `$?` explicitly — a broken Studio config got pushed because of this.
+  - Sep 24: Sanity array-of-objects requires `_key` per item or docs become uneditable in Studio ("Missing keys"). Always add `_key` in any API-created array items (answers, snapshot questions).
+  - Sep 24: multi-line `edit` replacements can clip neighboring function signatures — after editing `studio/sanity.config.ts`, read the file back before building.
 
 ## 7. Next steps for agent [updated Sep 24 night — infrastructure DONE, submission content left]
 Live: Vercel https://exam-os-delta.vercel.app/ (verified Sanity-backed) + hosted Studio https://exam-os-studio.sanity.studio/ + local frontend :3000 / Studio :3333. Dataset `vju5fidf/production`: 4 exams + 34 Qs + 2 notices, public-read. Writes proven. Growth Trial active; auto-downgrade to Free is harmless (dataset goes public anyway, well under quotas).
@@ -170,3 +179,9 @@ Stack notes: Next.js App Router (webpack only on this box), `next-sanity` + `san
 - CUSTOM STUDIO INPUT (bonus): `src/sanity/schemas/AnswerPicker.tsx` — MCQ `correctAnswer` renders `options[]` as radios (no re-typing) + schema validation rejecting non-matching answers. Studio rebuilt + redeployed. This satisfies challenge "did you customize the interface?".
 - BUG SWEEP (7 issues found by reading the code, fixed `efcecf1b`): `/results` published list + `/results/[id]` lookup were mock-only (showed fake "Maths Sem 2 published" while Sanity had no such exam) → both now use `fetchExams` / new `fetchReturnedSubmission` GROQ (`status=="returned"`, name case-insensitive, roll exact, joins `exam->totalMarks`); removed "MCQs are auto-checked" claim from mock instructions (no auto-grading anywhere); "Paper goes live in" → "Paper opens in"; `Countdown` shows a date (not "1194d 14:06") for targets >30d out; result/exam date formatting includes the year.
 - README REWRITTEN: what it is, live links (app + Studio + project id), student/teacher flows, schema + GROQ explanation with inspect URLs, local run, seed commands, env table, routes. Boilerplate gone.
+
+## 8d. Build log (Sep 24, night — teacher workflow hardening)
+- TASK HOME (`76d923e1`): Studio opens with Post Notice (new + recent), Create Exam (new draft + recent, `new-exam`/`new-notice` initial-value templates), Check Paper (ended-exam list → per-paper questions with pre-linked `question-for-paper` create + per-state submission queues), Post Result (ended-exam list → Set result date + Ready-to-return + Returned). Raw Exam/Question/Announcement lists kept below the divider.
+- ANSWER SHEET (`cc4a3d06`): `src/sanity/schemas/AnswerSheet.tsx` — custom "Answer sheet" tab on submissions (default document views: sheet + Marks form). Reads frozen `snapshot` first, falls back to live questions for pre-snapshot docs; handles draft IDs (`_id == $id || _id == "drafts."+$id`). NOTE: `@sanity/ui` version here types `Stack space` incompatibly — used `Flex gap` instead.
+- WORKFLOW HARDENING (`b093473a`): `submission.snapshot{totalMarks, questions[{number,qtype,questionText,options,correctAnswer,marks}]}` (readOnly, collapsed) written by `/api/submit`; `marksAwarded` schema validation rejects over-total; submit dedupes `(exam, rollNo)` → `{duplicate:true}` instead of twin docs; all created array items carry `_key` (fixes "Missing keys"), 6 legacy docs backfilled via Mutations API.
+- TYPE FRICTION: `writeClient.fetch` without an explicit generic infers a narrow GROQ result type — always pass the expected type param. Next.js type-checks `src/sanity/schemas/*.tsx` too, so Studio components must satisfy the app's TS (root `@sanity/ui` copy).
