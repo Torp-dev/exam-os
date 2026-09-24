@@ -36,13 +36,6 @@ export default async function Home() {
               Exam Status
             </h2>
           </div>
-          <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-zinc-500">
-            {process.env.NEXT_PUBLIC_SANITY_PROJECT_ID &&
-            process.env.NEXT_PUBLIC_SANITY_PROJECT_ID !== "YOUR_PROJECT_ID" &&
-            process.env.NEXT_PUBLIC_SANITY_PROJECT_ID !== "dummy-project"
-              ? "Sanity live"
-              : "Demo with mock data"}
-          </span>
         </div>
 
         <div className="overflow-hidden rounded-3xl border border-black/10 bg-white">
