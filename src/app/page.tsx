@@ -102,38 +102,34 @@ export default async function Home() {
           })}
         </div>
 
-        {announcements.length > 0 && (
-          <div className="mt-4 overflow-hidden rounded-3xl bg-ink p-6 text-white">
-            <p className="font-display text-lg font-bold">{announcements[0].title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-white/70">{announcements[0].message}</p>
-          </div>
-        )}
       </section>
 
-      <section className="bg-ink py-32 text-white md:py-48">
-        <div className="mx-auto w-full max-w-5xl px-4 text-center">
-          <h2 className="font-display mx-auto w-full max-w-4xl text-5xl font-extrabold tracking-tight md:text-7xl">
-            Ready when the bell rings.
+      <section id="notices" className="bg-ink py-32 text-white md:py-48">
+        <div className="mx-auto w-full max-w-5xl px-4">
+          <h2 className="font-display mx-auto w-full max-w-4xl text-center text-5xl font-extrabold tracking-tight md:text-7xl">
+            Notice Board
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/60">
-            No logins for students. Open the paper, prove identity, write till zero.
+          <p className="mx-auto mt-4 max-w-xl text-center text-white/60">
+            Exam notices, result announcements, and updates — posted by teachers from Sanity.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="#papers"
-              className="rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
-            >
-              Enter the hall
-            </Link>
-            <Link
-              href="/results"
-              className="rounded-full border border-white/25 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
-            >
-              Check exam results
-            </Link>
-          </div>
+          {announcements.length === 0 ? (
+            <div className="mx-auto mt-10 max-w-2xl rounded-3xl border border-white/15 bg-white/5 p-8 text-center">
+              <p className="font-display text-xl font-bold">No notices right now</p>
+              <p className="mt-1 text-sm text-white/60">Check back closer to exam week.</p>
+            </div>
+          ) : (
+            <div className="mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-2">
+              {announcements.map((a) => (
+                <div key={a.id} className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur transition hover:bg-white/10">
+                  <p className="font-display text-lg font-bold">{a.title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/70">{a.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="mt-12 flex items-center justify-center gap-6 text-sm text-white/40">
             <Link href="/" className="transition hover:text-white">Papers</Link>
+            <Link href="/results" className="transition hover:text-white">Results</Link>
             <span>Exam Host</span>
           </div>
         </div>

@@ -36,7 +36,7 @@ export default function Hero() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,10,11,0.55)_55%,#0A0A0B_100%)]" />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center px-4 pb-24 pt-36 text-center md:pb-32 md:pt-44">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center px-4 pb-40 pt-48 text-center md:pb-56 md:pt-64">
         <h1 className="hero-h1 font-display w-full max-w-5xl font-extrabold text-balance">
           <span className="hero-line block">
             One clock
@@ -66,6 +66,12 @@ export default function Hero() {
             className="rounded-full border border-white/25 px-7 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
           >
             Check exam results
+          </Link>
+          <Link
+            href="#notices"
+            className="rounded-full border border-white/25 px-7 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            View Notice
           </Link>
         </div>
       </div>
