@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { AnswerPicker } from "./AnswerPicker";
 
 export const question = defineType({
   name: "question",
@@ -33,6 +34,14 @@ export const question = defineType({
     defineField({
       name: "correctAnswer", title: "Correct answer (MCQ, hidden from students)", type: "string",
       hidden: ({ parent }) => parent?.type !== "mcq",
+      components: { input: AnswerPicker },
+      validation: (r) =>
+        r.custom((ans, ctx) => {
+          const parent = ctx.parent as { options?: string[] } | undefined;
+          if (ans && parent?.options?.length && !parent.options.includes(ans as string))
+            return "Must match one of the options above — pick it instead of typing";
+          return true;
+        }),
     }),
     defineField({ name: "marks", title: "Marks", type: "number", validation: (r) => r.required().min(1) }),
   ],
