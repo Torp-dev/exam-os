@@ -32,7 +32,13 @@ export async function fetchExams(): Promise<Exam[]> {
   if (!configured) return mockExams();
   try {
     const rows = await client.fetch<Exam[]>(EXAMS_QUERY, {}, { next: { revalidate: 30 } });
-    return rows.length ? rows : mockExams();
+    if (!rows.length) return mockExams();
+    // Studio docs may miss optional fields — normalize so pages never crash.
+    return rows.map((e) => ({
+      ...e,
+      colleges: e.colleges ?? [],
+      instructions: e.instructions ?? [],
+    }));
   } catch {
     return mockExams(); // offline / misconfigured → demo still works
   }
@@ -42,7 +48,8 @@ export async function fetchQuestions(examId: string): Promise<Question[]> {
   if (!configured) return mockQuestions(examId);
   try {
     const rows = await client.fetch<Question[]>(QUESTIONS_QUERY, { examId });
-    return rows.length ? rows : mockQuestions(examId);
+    if (!rows.length) return mockQuestions(examId);
+    return rows.map((q) => ({ ...q, options: q.options ?? [] }));
   } catch {
     return mockQuestions(examId);
   }
