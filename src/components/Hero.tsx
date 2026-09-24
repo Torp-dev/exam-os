@@ -39,14 +39,17 @@ export default function Hero() {
       <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center px-4 pb-40 pt-48 text-center md:pb-56 md:pt-64">
         <h1 className="hero-h1 font-display w-full max-w-5xl font-extrabold text-balance">
           <span className="hero-line block">
-            Same paper,
+            An exam hosting
+          </span>
+          <span className="hero-line block">
+            platform
             <span
               className="mx-3 inline-block h-[0.72em] w-[1.9em] rounded-full bg-cover bg-center align-middle"
               style={{ backgroundImage: "url(https://picsum.photos/seed/clock/400/160)" }}
             />
-            every college,
+            powered
           </span>
-          <span className="hero-line block">same second.</span>
+          <span className="hero-line block">by Sanity.</span>
         </h1>
 
         <p className="hero-line mt-6 w-full max-w-2xl text-base leading-relaxed text-white/70 md:text-lg">
