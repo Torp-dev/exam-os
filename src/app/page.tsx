@@ -83,7 +83,11 @@ export default async function Home() {
                     {liveNow ? (
                       <>Closes in <Countdown targetISO={e.closeAt} /> · Ends {new Date(e.closeAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>
                     ) : st === "closed" ? (
-                      <>Results {e.resultAt ? `published ${new Date(e.resultAt).toLocaleDateString()}` : "published"}</>
+                      e.resultAt && Date.now() > new Date(e.resultAt).getTime() ? (
+                        <>Results published {new Date(e.resultAt).toLocaleDateString()}</>
+                      ) : (
+                        <>Results {e.resultAt ? new Date(e.resultAt).toLocaleDateString() : "soon"}</>
+                      )
                     ) : (
                       <>Starts in <Countdown targetISO={e.releaseAt} /> · Starts {new Date(e.releaseAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>
                     )}
