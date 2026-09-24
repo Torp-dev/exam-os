@@ -36,8 +36,8 @@ Key GROQ:
 - [x] Sanity client + GROQ queries with mock fallback (`src/sanity/client.ts`, `queries.ts`)
 - [x] Submit API stores `submission` docs when write token set (`src/app/api/submit/route.ts`)
 - [x] Decision Sep 24: NO embedded `/studio` route in this site (removed) — teachers author in hosted Studio at sanity.io/manage
-- [ ] Sanity account + project created, projectId noted — USER ACTION (sanity.io → project `exam-os`)
-- [ ] projectId plugged into `.env.local` (from `.env.local.example`)
+- [ ] Sanity account + project created, projectId noted — DONE Sep 24: project `exam-os`, ID `vju5fidf`, dataset `production` (user created via sanity.io; template monorepo steps NOT followed — existing app already matches the required end state)
+- [x] projectId plugged into `.env.local` (+ `.env.local.example` created, no secrets)
 - [ ] Dataset `production` public read + 1 real exam + 8-10 questions in Studio
 - [ ] CORS for Vercel URL + localhost:3000
 - [ ] SANITY_WRITE_TOKEN (Editor) for submissions
@@ -120,8 +120,9 @@ Stack notes: Next.js App Router (webpack only on this box), `next-sanity` + `san
 - Redesign (@gpt-tasteskill): `tailwind.config.js` (font-display/body, ink/paper, marquee), `globals.css` (Cabinet+Outfit, grain, hero-h1 clamp), `layout.tsx` (font links + global Navbar), new `Navbar` (floating glass pill), `Hero` (cinematic center, inline pill image, 2 CTAs, live countdown chip), `Marquee` (colleges), `Motion` (ScrubReveal word-scrub + ScaleImage 0.82→1.0). Home rewritten AIDA (hero/marquee/bento/how/CTA, `py-32 md:py-48`, `grid-flow-dense` 4+2/2+2+2). Exam detail/take/done restyled, logic untouched, emojis stripped. Deps added: gsap + @gsap/react.
 - Studio removal (user decision): deleted `src/app/studio/[[...tool]]/`; Navbar/hero/footer CTAs → #papers/#how; copy "Schedule in Sanity". `rm -rf .next` needed (stale studio types broke type-check). Rebuild passes; `/studio` 404s; home has 0 studio refs. `sanity.config.ts` + schemas/client/queries KEPT (hosted Studio + data layer still need them).
 - Docs pass: §2 rewritten from sanity.io/docs (Content Lake, schemas, Studio, GROQ, Releases/Perspectives, Mutations) with links; §4A/4C studio refs corrected; §4E now records REQUIRED projectId + public dataset URL (challenge rules, https://dev.to/challenges/sanity-2026-09-16).
-- PENDING USER ACTIONS: Sanity project `exam-os` + projectId; `.env.local` (+ write token); seed 1 exam + 8-10 questions; CORS (localhost:3000 + Vercel); Studio screenshots; Vercel deploy; demo video; DEV post.
-- UNCOMMITTED Sep 24 (not yet pushed): redesign files, studio deletion, AGENTS.md updates, package.json (next-sanity/sanity/gsap). Dev server running from this worktree — push before Vercel deploy.
+- PENDING USER ACTIONS: dataset `production` public-read (dashboard → Access) + CORS (localhost:3000 + Vercel URL) + Editor token (`SANITY_WRITE_TOKEN`); then agent seeds + verifies live-data + redeploys with env vars. Studio screenshots; Vercel deploy env vars; demo video; DEV post.
+- PUSHED Sep 24: all session work committed (7e6e1fb) to Torp-dev/exam-os main. Frontend declared done.
+- DEPLOYED Sep 24: https://exam-os-delta.vercel.app/ (user connected via dashboard). Verified: home 200 with 6 papers + 2 Join, /results 200, /results/bsc-math-sem2 200. Mock mode (no env vars).
 - Demo papers x5 (user request): 2 live (Physics Mechanics+Optics w/ existing 10 Qs, Chemistry Organic Basics w/ new 10 Qs) + 3 upcoming (Maths Linear Algebra, CS Data Structures, Botany Cell Biology). Closed demo removed. Home papers section converted bento-grid → list rows (thumb icon + status dot, title, subject/class/colleges, countdown, Join for live / View for upcoming → `/exam/[id]` name-entry + Start). Verified: all 5 titles render, 2 Join + 3 View.
 - Sanity-side review (user decision Sep 24): `/done` stripped to confirmation-only (attempted count + `resultAt` publish date, zero scores/correct-answers — also closes the mock `correctAnswer` leak). Take page no longer computes scores (`scoreMcq` helper deleted); submit sends answers + identity only. Schema: `exam.resultAt`, `submission.marksAwarded` + status 4-state (submitted|checking|checked|returned). GROQ exams query now selects `resultAt`. `/api/submit` drops autoScore.
 - Marketing "how" section removed (user request Sep 24): scrub-reveal/scale-image block + 3 cards gone from home; `#how` anchors removed from Navbar/Hero/footer (single CTAs now). `Motion.tsx` kept but unused.
