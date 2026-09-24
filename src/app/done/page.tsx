@@ -2,20 +2,50 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getExams, type ExamResult } from "@/lib/exams";
+import { useRouter } from "next/navigation";
+import { fetchExams } from "@/sanity/queries";
+import { getExams, type Exam, type ExamResult } from "@/lib/exams";
 import Navbar from "@/components/Navbar";
 
 function DoneInner() {
   const sp = useSearchParams();
+  const router = useRouter();
   const id = sp.get("id") || "";
   const auto = sp.get("auto") === "1";
-  const exam = useMemo(() => getExams().find((e) => e.id === id), [id]);
   const result: ExamResult | null = useMemo(() => {
     try {
-      const raw = localStorage.getItem(`examos:result:${id}`);
+      const raw = id ? localStorage.getItem(`examos:result:${id}`) : null;
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   }, [id]);
+  // Exam may be a live Sanity paper (not in mocks) — resolve it too.
+  const [liveExam, setLiveExam] = useState<Exam | null>(null);
+  useEffect(() => {
+    if (!id) return;
+    fetchExams().then((all) => {
+      const found = all.find((e) => e.id === id) ?? null;
+      setLiveExam(found);
+    }).catch(() => {});
+  }, [id]);
+  const exam = useMemo(
+    () => getExams().find((e) => e.id === id) ?? liveExam,
+    [id, liveExam]
+  );
+  // No id (or unknown id): jump to the latest receipt on this device, if any.
+  useEffect(() => {
+    if (id) return;
+    try {
+      let latest: { id: string; at: number } | null = null;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith("examos:result:")) continue;
+        const r = JSON.parse(localStorage.getItem(k) || "null");
+        const at = r?.submittedAt ? +new Date(r.submittedAt) : 0;
+        if (!latest || at > latest.at) latest = { id: k.slice("examos:result:".length), at };
+      }
+      if (latest) router.replace(`/done?id=${latest.id}`);
+    } catch {}
+  }, [id, router]);
   // Retry delivery to Sanity: first submit may have happened before the
   // write token existed (local-only). Reopening this receipt re-sends it.
   const retried = useRef(false);
@@ -33,13 +63,24 @@ function DoneInner() {
       .catch(() => {});
   }, [result]);
 
-  if (!exam || !result) {
+  if (!result) {
     return (
       <main className="mx-auto max-w-xl px-4 py-32 text-center">
-        <p className="font-display text-xl font-bold">No submission found.</p>
-        <Link href="/" className="mt-2 inline-block text-sm font-medium underline">Back to exams</Link>
+        <p className="font-display text-xl font-bold">No submission found on this device.</p>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-500">
+          Receipts live in the browser you took the exam in. If you submitted on another
+          device or cleared site data, open the receipt link there instead.
+        </p>
+        <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+          <Link href="/" className="rounded-full bg-ink px-5 py-2 font-semibold text-white">Back to exams</Link>
+          <Link href="/results" className="font-medium underline">Check results</Link>
+        </div>
       </main>
     );
+  }
+
+  if (!exam) {
+    return <main className="mx-auto max-w-xl px-4 py-32 text-center text-sm text-zinc-500">Finding your paper…</main>;
   }
 
   const attempted = result.answers.filter((a) => a.answer.trim()).length;
