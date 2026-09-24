@@ -73,7 +73,7 @@ export default async function Home() {
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase ${badge[st]}`}
                     >
-                      {st}
+                      {st === "live" ? "ongoing" : st}
                     </span>
                   </div>
                   <p className="mt-0.5 truncate text-sm text-zinc-500">

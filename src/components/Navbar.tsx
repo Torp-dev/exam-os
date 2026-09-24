@@ -35,7 +35,7 @@ export default function Navbar() {
           }`}
         >
           <Link href="/#papers" className="transition hover:text-current hover:opacity-100">
-            View live papers
+            View ongoing papers
           </Link>
           <Link href="/results" className="transition hover:text-current hover:opacity-100">
             Check exam results

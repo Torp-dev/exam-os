@@ -57,7 +57,7 @@ export default function Hero() {
             href="#papers"
             className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
           >
-            View live papers
+            View ongoing papers
           </Link>
           <Link
             href="/results"
