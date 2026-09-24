@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Exam Host — an exam hosting platform powered by Sanity
 
-## Getting Started
+One paper, every college, same second. Teachers publish exam papers in Sanity.
+Students open the paper on any campus PC, write against one shared timer, and get
+auto-submitted at zero.
 
-First, run the development server:
+Built for the DEV Sanity Challenge 2026 (Path Two: Vibe-Code Something Strange).
+
+## Live links
+
+- Student site: https://exam-os-delta.vercel.app/
+- Teacher Studio (hosted): https://exam-os-studio.sanity.studio/
+- Sanity project: `vju5fidf` · dataset `production` (public read)
+
+## How it works
+
+**Students (no login):** open the site → Join a live paper → enter name + 4-digit
+roll (college auto-detected from first digit) → write against the exact
+`durationMins` timer → auto-submit at zero → confirmation receipt on `/done` →
+marks appear under `/results` after `resultAt`.
+
+**Teachers (Sanity Studio):** create exam + questions + notices → publish →
+every college PC sees it together, no redeploy. Check submissions in Studio:
+`submitted → checking → checked` (fill `marksAwarded` + `feedback`) → `returned`
+at `resultAt`. Review happens in Sanity, never on the student screen.
+
+## Sanity behind it
+
+- **Content Lake:** every exam, question, submission, announcement is a JSON
+  document in dataset `production`. Publish once, all colleges read the same docs.
+- **Schemas** (`src/sanity/schemas/`): `exam` (slug, subject, colleges,
+  `releaseAt`/`closeAt`/`resultAt`, `durationMins`, `status`), `question`
+  (`reference → exam`, mcq/short/long, `options[]`, `correctAnswer`, marks),
+  `submission` (`reference → exam`, answers, `marksAwarded`, 4-state status,
+  `feedback`), `announcement` (`showFrom`/`showUntil` window + PDF attachment).
+- **GROQ** (`src/sanity/queries.ts`): exam list ordered by `releaseAt`; paper
+  sync joins `exam->slug` and deliberately omits `correctAnswer` so students
+  never receive it; notices filtered to their visible window. Mock fallback in
+  `src/lib/exams.ts` keeps the demo alive offline.
+- **Writes:** `/api/submit` creates `submission` docs via the Mutations API
+  with a server-only `SANITY_WRITE_TOKEN`.
+
+Inspect the data (no login needed):
+
+- Papers: `https://vju5fidf.api.sanity.io/v2025-09-01/data/query/production?query=*[_type=="exam"]|order(releaseAt desc){title,subject,releaseAt,closeAt,status}`
+- Judge-demo questions: append `?query=*[_type=="question" && exam->slug.current=="judge-demo-gk"]|order(number asc){number,type,questionText,options,marks}`
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.local.example .env.local   # fill in project ID + Editor write token
+npm run dev -- --webpack           # http://localhost:3000 (this box needs --webpack)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Studio:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd studio
+npm install
+npm run dev                        # http://localhost:3333
+npm run deploy                     # https://exam-os-studio.sanity.studio/
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Seed / reset demo data (needs CLI login):
 
-## Learn More
+```bash
+cd studio
+npx sanity exec seed.mjs --with-user-token          # 3 upcoming exams + questions
+npx sanity exec seed-live.mjs --with-user-token     # always-live judge demo paper
+npx sanity exec seed-notices.mjs --with-user-token  # visible + scheduled notices
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Environment variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Key | Where | Value |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` | Vercel + local | `vju5fidf` |
+| `NEXT_PUBLIC_SANITY_DATASET` | Vercel + local | `production` |
+| `NEXT_PUBLIC_SANITY_API_VERSION` | Vercel + local | `2025-09-01` |
+| `SANITY_WRITE_TOKEN` | server-only, never commit | Editor-role token |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Routes
 
-## Deploy on Vercel
+`/` papers + notice board · `/exam/[id]` countdown + entry · `/exam/[id]/take`
+timed paper · `/done` receipt (no scores) · `/results` hall + `/results/[id]`
+marks lookup · `/api/submit` write path.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Stack: Next.js App Router (webpack builds on this box), `next-sanity` +
+  `sanity` 6.16.0, Tailwind v3, GSAP.
+- See `AGENTS.md` for the full build log, prompts log, and remaining
+  submission checklist (demo video, DEV post, workflow screenshots).
