@@ -11,7 +11,11 @@ export const question = defineType({
       to: [{ type: "exam" }],
       validation: (r) => r.required(),
     }),
-    defineField({ name: "number", title: "Question no.", type: "number", validation: (r) => r.required().min(1) }),
+    defineField({
+      name: "number", title: "Question no.", type: "number",
+      description: "Unique within the paper, in order (1, 2, 3…). Drives site ordering and answer matching.",
+      validation: (r) => r.required().min(1),
+    }),
     defineField({
       name: "type", title: "Type", type: "string",
       options: { list: ["mcq", "short", "long"], layout: "radio" },
@@ -37,7 +41,8 @@ export const question = defineType({
       components: { input: AnswerPicker },
       validation: (r) =>
         r.custom((ans, ctx) => {
-          const parent = ctx.parent as { options?: string[] } | undefined;
+          const parent = ctx.parent as { type?: string; options?: string[] } | undefined;
+          if (parent?.type === "mcq" && !ans) return "Required for MCQ — pick it above";
           if (ans && parent?.options?.length && !parent.options.includes(ans as string))
             return "Must match one of the options above — pick it instead of typing";
           return true;

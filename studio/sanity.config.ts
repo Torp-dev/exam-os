@@ -21,6 +21,24 @@ function questionsForExam(S: StructureBuilder, examId: string) {
     );
 }
 
+// Full workspace for one paper: open it, manage its questions, work its
+// submission queues. Used by Create Exam (all papers), Check Paper and
+// Post Result (ended papers) so teachers never hit a dead end.
+function paperWorkspace(S: StructureBuilder, examId: string) {
+  return S.list()
+    .title("Paper")
+    .items([
+      S.listItem()
+        .title("Open paper")
+        .child(S.document().documentId(examId).schemaType("exam")),
+      questionsForExam(S, examId),
+      submissionsForExam(S, examId, "submitted", "New submissions"),
+      submissionsForExam(S, examId, "checking", "Being checked"),
+      submissionsForExam(S, examId, "checked", "Checked — ready to return"),
+      submissionsForExam(S, examId, "returned", "Returned"),
+    ]);
+}
+
 // Submissions for one paper in one review state (teacher opens the paper,
 // sees only its queue).
 function submissionsForExam(S: StructureBuilder, examId: string, status: string, title: string) {
@@ -94,13 +112,11 @@ export default defineConfig({
                       .title("New exam paper")
                       .child(S.document().schemaType("exam").initialValueTemplate("new-exam")),
                     S.listItem()
-                      .title("Recent papers")
+                      .title("All papers")
                       .child(
-                        S.documentList()
-                          .title("Recent papers")
-                          .schemaType("exam")
-                          .filter('_type == "exam"')
-                          .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+                        S.documentTypeList("exam")
+                          .title("All papers")
+                          .child((examId: string) => paperWorkspace(S, examId))
                       ),
                   ])
               ),
@@ -112,20 +128,7 @@ export default defineConfig({
                   .schemaType("exam")
                   .filter('_type == "exam" && dateTime(closeAt) <= dateTime(now())')
                   .defaultOrdering([{ field: "closeAt", direction: "desc" }])
-                  .child((examId: string) =>
-                    S.list()
-                      .title("Checking")
-                      .items([
-                        S.listItem()
-                          .title("Open paper")
-                          .child(S.document().documentId(examId).schemaType("exam")),
-                        questionsForExam(S, examId),
-                        submissionsForExam(S, examId, "submitted", "New submissions"),
-                        submissionsForExam(S, examId, "checking", "Being checked"),
-                        submissionsForExam(S, examId, "checked", "Checked — ready to return"),
-                        submissionsForExam(S, examId, "returned", "Returned"),
-                      ])
-                  )
+                  .child((examId: string) => paperWorkspace(S, examId))
               ),
             S.listItem()
               .title("Post Result")

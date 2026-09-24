@@ -4,14 +4,16 @@ export const submission = defineType({
   name: "submission",
   title: "Submission",
   type: "document",
-  readOnly: true, // created by the Next.js app, checked by teachers
+  // NOTE: no document-level readOnly — teachers must edit status/marks/feedback.
+  // Student-written fields are locked individually below instead.
   fields: [
-    defineField({ name: "exam", title: "Exam", type: "reference", to: [{ type: "exam" }] }),
-    defineField({ name: "studentName", title: "Student", type: "string" }),
-    defineField({ name: "rollNo", title: "Roll no.", type: "string" }),
-    defineField({ name: "college", title: "College", type: "string" }),
+    defineField({ name: "exam", title: "Exam", type: "reference", to: [{ type: "exam" }], readOnly: true, validation: (r) => r.required() }),
+    defineField({ name: "studentName", title: "Student", type: "string", readOnly: true }),
+    defineField({ name: "rollNo", title: "Roll no.", type: "string", readOnly: true }),
+    defineField({ name: "college", title: "College", type: "string", readOnly: true }),
     defineField({
-      name: "answers", title: "Answers", type: "array",
+      name: "answers", title: "Student answers (locked)", type: "array", readOnly: true,
+      description: "Written by the student at submit time — never edit. Check in the Answer sheet tab.",
       of: [{
         type: "object",
         fields: [
@@ -20,12 +22,12 @@ export const submission = defineType({
         ],
       }],
     }),
-    defineField({ name: "submittedAt", title: "Submitted at", type: "datetime" }),
+    defineField({ name: "submittedAt", title: "Submitted at", type: "datetime", readOnly: true }),
     defineField({
       name: "marksAwarded", title: "Marks awarded (teacher)", type: "number",
       description: "Filled by the teacher in Studio during checking. Never shown to students before results publish.",
       validation: (r) =>
-        r.custom((v, ctx) => {
+        r.min(0).custom((v, ctx) => {
           const parent = ctx.parent as { snapshot?: { totalMarks?: number } } | undefined;
           const max = parent?.snapshot?.totalMarks;
           if (typeof v === "number" && typeof max === "number" && v > max)
