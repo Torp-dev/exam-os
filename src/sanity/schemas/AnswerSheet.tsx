@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useClient } from "sanity";
-import { Box, Card, Stack, Text } from "@sanity/ui";
+import { Box, Card, Flex, Text } from "@sanity/ui";
 
 interface Answer {
   _key?: string;
@@ -9,9 +9,11 @@ interface Answer {
 }
 interface Q {
   number: number;
-  type: string;
+  qtype?: string;
+  type?: string;
   questionText: string;
   options?: string[];
+  correctAnswer?: string;
   marks: number;
 }
 interface Sub {
@@ -22,6 +24,7 @@ interface Sub {
   status?: string;
   marksAwarded?: number;
   answers?: Answer[];
+  snapshot?: { totalMarks?: number; questions?: Q[] };
 }
 
 // Read-only "Answer sheet" tab on a submission: full Q&A as plain text,
@@ -38,7 +41,7 @@ export function AnswerSheet(props: { documentId: string }) {
     const id = props.documentId;
     client
       .fetch<Sub | null>(
-        `*[_id == $id || _id == "drafts." + $id][0]{studentName, rollNo, college, submittedAt, status, marksAwarded, answers, "examId": exam._ref}`,
+        `*[_id == $id || _id == "drafts." + $id][0]{studentName, rollNo, college, submittedAt, status, marksAwarded, answers, snapshot{totalMarks, questions}, "examId": exam._ref}`,
         { id }
       )
       .then(async (s) => {
@@ -48,10 +51,15 @@ export function AnswerSheet(props: { documentId: string }) {
           return;
         }
         setSub(s);
+        // Prefer the frozen snapshot; fall back to live questions for old sheets.
+        if (s.snapshot?.questions?.length) {
+          setQs(s.snapshot.questions);
+          return;
+        }
         const examId = (s as Sub & { examId?: string }).examId;
         if (!examId) return;
         const questions = await client.fetch<Q[]>(
-          `*[_type == "question" && exam._ref == $e] | order(number asc) {number, type, questionText, options, marks}`,
+          `*[_type == "question" && exam._ref == $e] | order(number asc) {number, "qtype": type, questionText, options, correctAnswer, marks}`,
           { e: examId }
         );
         if (live) setQs(questions ?? []);
@@ -66,11 +74,11 @@ export function AnswerSheet(props: { documentId: string }) {
   if (!sub) return <Box padding={4}><Text size={2} muted>Loading answer sheet…</Text></Box>;
 
   const byNo = new Map((sub.answers ?? []).map((a) => [a.questionNo, a.answer ?? ""]));
-  const totalPossible = qs.reduce((t, q) => t + (q.marks ?? 0), 0);
+  const totalPossible = sub.snapshot?.totalMarks ?? qs.reduce((t, q) => t + (q.marks ?? 0), 0);
 
   return (
     <Box padding={4}>
-      <Stack space={4}>
+      <Flex direction="column" gap={4}>
         <Card padding={3} tone="transparent" border>
           <Text size={3} weight="bold">{sub.studentName ?? "?"} ({sub.rollNo ?? "?"}) · {sub.college ?? ""}</Text>
           <Text size={1} muted>Submitted {sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : "—"} · {sub.status ?? ""}</Text>
@@ -78,10 +86,13 @@ export function AnswerSheet(props: { documentId: string }) {
         {qs.length === 0 && (
           <Text size={2} muted>No linked questions found for this paper — answers shown raw below.</Text>
         )}
-        {(qs.length ? qs : (sub.answers ?? []).map((a, i) => ({ number: a.questionNo ?? i, type: "?", questionText: "", marks: 0 }))).map((q) => (
+        {(qs.length ? qs : (sub.answers ?? []).map((a, i) => ({ number: a.questionNo ?? i, qtype: "?", questionText: "", options: [] as string[], correctAnswer: "", marks: 0 }))).map((q) => (
           <Card key={q.number} padding={3} border>
-            <Text size={1} muted>Q{q.number} · {q.type.toUpperCase()} · {q.marks} marks</Text>
+            <Text size={1} muted>Q{q.number} · {(q.qtype ?? "?").toUpperCase()} · {q.marks} marks</Text>
             {q.questionText ? <Text size={2} weight="semibold" style={{ marginTop: 4 }}>{q.questionText}</Text> : null}
+            {q.correctAnswer ? (
+              <Text size={1} style={{ marginTop: 4 }}>Correct: <strong>{q.correctAnswer}</strong></Text>
+            ) : null}
             <Text size={2} style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
               {byNo.get(q.number) || <em style={{ color: "#999" }}>— no answer —</em>}
             </Text>
@@ -93,7 +104,7 @@ export function AnswerSheet(props: { documentId: string }) {
           </Text>
           <Text size={1} muted>Award once in the Marks tab. No per-question marking.</Text>
         </Card>
-      </Stack>
+      </Flex>
     </Box>
   );
 }
